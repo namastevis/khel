@@ -29,6 +29,18 @@ async function open(name, viewport, init) {
   return { ctx, page };
 }
 
+/* Games now open straight onto the board when the same people are playing
+   as last time, so a test that wants the setup screen has to ask for it
+   the way an adult would — the 👥 button. */
+async function toSetup(page) {
+  await page.waitForSelector('[data-el="who"], [data-screen="setup"].is-active');
+  if (await page.isVisible('[data-el="who"]')) {
+    await page.click('[data-el="who"]');
+    await page.waitForTimeout(300);
+  }
+  await page.waitForSelector('.seats .seat');
+}
+
 /* A loaded die, so that a test about finishing a round isn't a test
    about luck. rollDie() reads one byte and returns (byte % 6) + 1. */
 const alwaysRolls = (value) => ({
@@ -53,7 +65,12 @@ const alwaysRolls = (value) => ({
   await page.waitForTimeout(600);
   check('tapping the card routes to #/ludo', page.url().endsWith('#/ludo'));
   check('the game mounted', await page.evaluate(() => KHEL.active === 'ludo'));
-  check('Ludo\'s setup screen is up', await page.isVisible('[data-screen="setup"]'));
+  // the whole point of the change: yesterday's line-up just plays
+  check('a familiar line-up goes straight to the board',
+    await page.isVisible('[data-screen="board"].is-active'));
+  await toSetup(page);
+  check('and 👥 gets back to who\'s playing',
+    await page.isVisible('[data-screen="setup"].is-active'));
   await page.screenshot({ path: '/tmp/khel-ludo-setup.png' });
 
   // the seats are filled from the family, and nobody types a name here
@@ -89,12 +106,16 @@ const alwaysRolls = (value) => ({
 
   await page.click('[data-el="play"]');
   await page.waitForTimeout(900);
-  check('the family name is announced on the board',
-    (await page.textContent('[data-el="turnName"]')) === 'Chueen');
+  // the turn card now carries her creature as well as her name, which is
+  // the half a five-year-old can actually read
+  const turn = await page.textContent('[data-el="turnName"]');
+  check('the family name is announced on the board', turn.includes('Chueen'));
+  check('and so is her creature', /\p{Extended_Pictographic}/u.test(turn));
   await page.click('[data-el="quit"]');
   await page.waitForTimeout(400);
   await page.goto(`http://localhost:${PORT}/#/ludo`);
   await page.waitForTimeout(700);
+  await toSetup(page);
 
   await page.click('[data-el="back"]');
   await page.waitForTimeout(400);
@@ -123,6 +144,7 @@ const alwaysRolls = (value) => ({
   const { ctx, page } = await open('play', { width: 820, height: 1180 }, alwaysRolls(6));
   await page.click('.game-card[data-id="ludo"]');
   await page.waitForTimeout(600);
+  await toSetup(page);
 
   await page.evaluate(() => {
     LUDO.table.assign('green', 'cpu');
@@ -211,7 +233,7 @@ const alwaysRolls = (value) => ({
   check('the round ended', await page.evaluate(() => LUDO.game.state?.phase === 'over'));
   check('everyone got a placing', (await page.$$('.podium-row')).length === 2);
   check('Chueen is on top of the podium',
-    (await page.textContent('.podium-row:first-child .podium-name')) === 'Chueen');
+    (await page.textContent('.podium-row:first-child .podium-name')).includes('Chueen'));
   check('the running score is shown',
     (await page.textContent('[data-el="tallyRow"]')).includes('Chueen 1'));
   await page.screenshot({ path: '/tmp/khel-podium.png' });
@@ -243,6 +265,8 @@ const alwaysRolls = (value) => ({
   await page.screenshot({ path: '/tmp/khel-shelf.png' });
 
   await page.click('.game-card[data-id="snakes"]');
+  await page.waitForTimeout(500);
+  await toSetup(page);
   await page.waitForTimeout(800);
   check('it opens', await page.evaluate(() => KHEL.active === 'snakes'));
   check('the same family sits down',
@@ -307,8 +331,12 @@ const alwaysRolls = (value) => ({
   const { ctx, page } = await open('family', { width: 820, height: 1180 });
 
   check('the shelf shows who lives here',
-    (await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim())))
-      .join(',').replace(/\s+/g, '') === 'Chueen,Mamma,Dada');
+    (await page.$$eval('.member:not(.member-add) .member-name', (els) => els.map((e) => e.textContent.trim())))
+      .join(',') === 'Chueen,Mamma,Dada');
+  check('everyone has a creature of their own', await page.evaluate(() => {
+    const faces = KHEL.family.all().map((m) => m.face);
+    return faces.every(Boolean) && new Set(faces).size === faces.length;
+  }));
   await page.screenshot({ path: '/tmp/khel-family.png' });
 
   // add someone
@@ -342,6 +370,7 @@ const alwaysRolls = (value) => ({
   // they show up in a game's picker
   await page.click('.game-card[data-id="ludo"]');
   await page.waitForTimeout(700);
+  await toSetup(page);
   await page.click('.seat[data-colour="yellow"]');
   await page.waitForTimeout(250);
   check('a new family member can take a seat',
@@ -375,7 +404,7 @@ const alwaysRolls = (value) => ({
 {
   const { ctx, page } = await open('memory', { width: 820, height: 1180 });
   await page.goto(`http://localhost:${PORT}/#/memory`);
-  await page.waitForSelector('.memory .seats .seat');
+  await toSetup(page);
 
   check('Memory: the sizes are offered', (await page.$$('.size')).length === 4);
 
@@ -486,7 +515,7 @@ const alwaysRolls = (value) => ({
 {
   const { ctx, page } = await open('memory-draw', { width: 820, height: 1180 });
   await page.goto(`http://localhost:${PORT}/#/memory`);
-  await page.waitForSelector('.memory .seats .seat');
+  await toSetup(page);
   await page.click('.size[data-size="1"]');          // six pairs, so 3–3 is possible
   await page.click('[data-el="play"]');
   await page.waitForSelector('.mcard');
@@ -550,6 +579,91 @@ const alwaysRolls = (value) => ({
     return family.listenerCount() === baseline && baseline > 0;
   }));
 
+  await ctx.close();
+}
+
+/* ── the five UX changes ──
+   Faces, the shelf's memory of the last round, and going straight to the
+   board. All three break silently, so each is asserted here. */
+{
+  const { ctx, page } = await open('polish', { width: 820, height: 1180 });
+
+  check('a creature can be changed, and stays changed', await page.evaluate(async () => {
+    const me = KHEL.family.all()[0];
+    const wanted = KHEL.family.FACES.find((f) => f !== me.face);
+    KHEL.family.reface(me.id, wanted);
+    const again = await import('/js/family.js');
+    again.load();
+    return again.byId(me.id).face === wanted;
+  }));
+
+  check('two people never share a creature', await page.evaluate(() => {
+    const taken = new Set(KHEL.family.all().map((m) => m.face));
+    return taken.size === KHEL.family.all().length;
+  }));
+
+  check('the shelf says nothing before anything has been played',
+    await page.evaluate(() => document.getElementById('last-round').hidden));
+
+  check('and remembers the last round afterwards', await (async () => {
+    await page.evaluate(() => {
+      localStorage.setItem('khel.lastRound',
+        JSON.stringify({ game: 'ludo', winner: '\u{1F98A} Chueen', at: Date.now() - 86400000 }));
+    });
+    await page.reload();
+    await page.waitForTimeout(500);
+    const line = await page.textContent('#last-round');
+    return !(await page.evaluate(() => document.getElementById('last-round').hidden))
+      && line.includes('Chueen') && line.includes('Ludo') && line.includes('Yesterday');
+  })());
+
+  check('a round from a game that no longer exists is not invented', await (async () => {
+    await page.evaluate(() => {
+      localStorage.setItem('khel.lastRound', JSON.stringify({ game: 'nosuchgame', winner: 'X', at: Date.now() }));
+    });
+    await page.reload();
+    await page.waitForTimeout(400);
+    return page.evaluate(() => document.getElementById('last-round').hidden);
+  })());
+
+  check('and finishing a round is what writes it', await (async () => {
+    await page.evaluate(() => localStorage.removeItem('khel.lastRound'));
+    await page.goto(`http://localhost:${PORT}/#/memory`);
+    await toSetup(page);
+    await page.click('.size[data-size="0"]');
+    await page.click('[data-el="play"]');
+    await page.waitForSelector('.mcard');
+    await page.evaluate(async () => {
+      const g = MEMORY.game.state;
+      while (g.left > 0) {
+        const first = g.cards.find((c) => !c.takenBy);
+        const twin = g.cards.find((c) => c.id === first.id && c.index !== first.index);
+        document.querySelector(`.mcard[data-i="${first.index}"]`).click();
+        document.querySelector(`.mcard[data-i="${twin.index}"]`).click();
+        await new Promise((r) => setTimeout(r, 950));
+      }
+    });
+    await page.waitForSelector('.podium-row', { timeout: 8000 });
+    const last = await page.evaluate(() => JSON.parse(localStorage.getItem('khel.lastRound') || 'null'));
+    return !!last && last.game === 'memory' && !!last.winner;
+  })());
+
+  await ctx.close();
+}
+
+/* ── knowing which copy you are on ──
+   An installed tablet has no address bar, so a stale copy is invisible
+   until someone notices a game is missing. */
+{
+  const { ctx, page } = await open('version', { width: 820, height: 1180 });
+  await page.evaluate(async () => {
+    await caches.open('khel-v1');            // an old copy left behind
+    await caches.open('khel-v42');
+  });
+  await page.reload();
+  await page.waitForTimeout(600);
+  check('the shelf says which build this device is running',
+    (await page.textContent('#version')).trim() === 'khel-v42');
   await ctx.close();
 }
 

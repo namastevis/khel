@@ -56,6 +56,7 @@ const TEMPLATE = `
       <header class="mtop">
         <span class="mturn"><b data-el="turnName">Red</b> <span data-el="hint">Turn over two cards</span></span>
         <span class="msize" data-el="sizeName"></span>
+        <button class="icon-btn" data-el="who" aria-label="Change who is playing">&#128101;</button>
         <button class="icon-btn" data-el="quit" aria-label="Back to the games">&#127968;</button>
       </header>
 
@@ -127,7 +128,7 @@ export function mount(host, shell) {
   const game = createController(el, {
     onGameOver: (order, drawn) => {
       // a draw is a draw: show the score, but hand nobody the trophy
-      el('tallyRow').textContent = drawn ? table.tallyText() : table.recordWin(order);
+      el('tallyRow').textContent = drawn ? table.recordDraw() : table.recordWin(order);
 
       // sweeping a small board is the moment to point at the next one up.
       // `players` is seat order, so the winner has to come from `finished`.
@@ -184,6 +185,7 @@ export function mount(host, shell) {
   on('how', 'click', () => el('helpOverlay').classList.add('is-active'));
   on('helpClose', 'click', () => el('helpOverlay').classList.remove('is-active'));
   on('back', 'click', () => shell.goHome());
+  on('who', 'click', () => { game.stop(); showSetup(); });
 
   on('quit', 'click', () => {
     table.closePicker();
@@ -212,8 +214,12 @@ export function mount(host, shell) {
   });
 
   buildSizes();
+  /* Straight to the board when the same people are playing as last time.
+     The setup screen is a page of words a five-year-old can't read, shown
+     every single time to reproduce yesterday's line-up; the people who
+     need to change it are adults, and the 👥 on the board is for them. */
   table.refresh();
-  showSetup();
+  if (table.ready()) start(); else showSetup();
 
   globalThis.MEMORY = { game, table, start, get size() { return chosenSize; } };
 

@@ -54,6 +54,7 @@ const TEMPLATE = `
         <p class="hint" data-el="hint">Tap the dice!</p>
 
         <div class="panel-foot">
+          <button class="icon-btn" data-el="who" aria-label="Change who is playing">&#128101;</button>
           <button class="icon-btn" data-el="quit" aria-label="Back to the games">&#127968;</button>
         </div>
       </aside>
@@ -141,6 +142,7 @@ export function mount(host, shell) {
   on('how', 'click', () => el('helpOverlay').classList.add('is-active'));
   on('helpClose', 'click', () => el('helpOverlay').classList.remove('is-active'));
   on('back', 'click', () => shell.goHome());
+  on('who', 'click', () => { game.stop(); showSetup(); });
 
   on('quit', 'click', () => {
     table.closePicker();
@@ -160,8 +162,12 @@ export function mount(host, shell) {
     showSetup();
   });
 
+  /* Straight to the board when the same people are playing as last time.
+     The setup screen is a page of words a five-year-old can't read, shown
+     every single time to reproduce yesterday's line-up; the people who
+     need to change it are adults, and the 👥 on the board is for them. */
   table.refresh();
-  showSetup();
+  if (table.ready()) start(); else showSetup();
 
   globalThis.SNAKES = { game, table, start };
 

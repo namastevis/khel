@@ -53,6 +53,8 @@
       <div class="family-row" id="family-row"></div>
     </section>
 
+    <p class="last-round" id="last-round" hidden></p>
+
     <p class="dedication" id="dedication">
       <span class="ded-lead">Made for Chueen</span>
       <span class="ded-rest">because every other game on her tablet was stuffed with ads.</span>
@@ -64,6 +66,10 @@
            so saying "not now" never locks anyone out of saying yes later. -->
       <button id="btn-install-mini" class="install-mini" hidden>&#65291; Add to Home Screen</button>
     </div>
+
+    <!-- Which copy this device is actually running. The only way to answer
+         "is my tablet up to date?" without a laptop and a cable. -->
+    <p class="version" id="version" hidden></p>
   </div>
 </section>
 
@@ -84,6 +90,7 @@
     <input id="member-name" class="sheet-input" maxlength="14" spellcheck="false"
            autocapitalize="words" autocomplete="off" enterkeyhint="done" placeholder="Name" />
 
+    <div class="face-row" id="member-faces"></div>
     <div class="tint-row" id="member-tints"></div>
 
     <p class="sheet-note" id="member-note"></p>

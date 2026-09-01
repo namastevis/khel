@@ -126,7 +126,7 @@ export function createController(el, { onGameOver }) {
   function turnOver(i) {
     if (!canFlip(g, i)) return;
     flip(g, i);
-    sfx.hop();
+    sfx.flip();
     paint();
     if (g.flipped.length === 2) judge();
     else if (current(g).kind === 'cpu') later(cpuGo, CPU_THINK);
@@ -147,8 +147,10 @@ export function createController(el, { onGameOver }) {
       if (out.matched) {
         sfx.enter();
         showName(name);
+        celebrate(out.cards, out.by);
       } else {
         sfx.skip();
+        if (g.players.length > 1) sfx.turn();     // the tablet has changed hands
       }
 
       if (out.over) later(finish, 650);
@@ -170,6 +172,20 @@ export function createController(el, { onGameOver }) {
     badge.classList.remove('is-shown');
     void badge.offsetWidth;                     // restart the animation
     badge.classList.add('is-shown');
+  }
+
+  /* A pair that's been won should visibly leave the table and land on
+     somebody's score, or the number just quietly goes up and a small
+     player never connects the two. */
+  function celebrate(indexes, colour) {
+    const buttons = el('board').querySelectorAll('.mcard');
+    indexes.forEach((i) => buttons[i]?.classList.add('is-won'));
+    const pills = el('scores').querySelectorAll('.mscore');
+    const pill = pills[g.players.findIndex((p) => p.color === colour)];
+    if (!pill) return;
+    pill.classList.remove('is-bumped');
+    void pill.offsetWidth;
+    pill.classList.add('is-bumped');
   }
 
   function cpuGo() {

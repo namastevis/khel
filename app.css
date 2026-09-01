@@ -695,10 +695,16 @@ canvas.board {
 }
 .sheet-input:focus { outline: none; border-color: var(--yellow); }
 
-.tint-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 4px; }
+.tint-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  justify-items: center;
+  margin: 4px 0;
+}
 .tint {
-  width: clamp(30px, 7vmin, 38px);
-  height: clamp(30px, 7vmin, 38px);
+  width: clamp(26px, 6.2vmin, 34px);
+  height: clamp(26px, 6.2vmin, 34px);
   border-radius: 50%;
   border: 3px solid transparent;
   background: var(--tint);
@@ -758,3 +764,80 @@ canvas.board {
   white-space: nowrap;
 }
 .seat[data-state="off"] .seat-who { color: var(--ink-soft); font-weight: 600; }
+
+/* ───────────── creatures ─────────────
+   A five-year-old reads a fox instantly and "Mamma" not at all, so every
+   person has an animal that follows them onto the seats, the turn card
+   and the podium. Picking your own is half the point. */
+.face-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.face {
+  border: 3px solid transparent;
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 4px 0;
+  font-size: clamp(17px, 4.4vmin, 23px);
+  line-height: 1.2;
+  cursor: pointer;
+  font-family: inherit;
+}
+.face[aria-pressed="true"] { border-color: var(--ink); background: var(--white); }
+.face[disabled] { opacity: .28; cursor: default; }
+.face:active { transform: translateY(2px); }
+
+.member-dot {
+  display: grid;
+  place-items: center;
+  font-size: clamp(12px, 3vmin, 16px);
+  line-height: 1;
+}
+
+.seat-face { font-size: clamp(15px, 3.8vmin, 21px); line-height: 1; }
+.pick-dot { display: grid; place-items: center; font-size: 14px; }
+
+/* ───────────── what happened last ─────────────
+   One fact, quietly. Never a streak, never a target. */
+.last-round {
+  margin: clamp(4px, 1.4vh, 10px) 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(11px, 2.6vmin, 14px);
+  font-weight: 700;
+  text-align: center;
+}
+.last-round[hidden] { display: none; }
+
+/* ───────────── motion at the moments that matter ─────────────
+   Movement reads as the game responding to you, so the places that earn
+   an animation are the ones carrying feeling: winning, and the tablet
+   arriving in front of you. */
+.win-card { animation: land-in .42s cubic-bezier(.2,1.5,.4,1); }
+@keyframes land-in {
+  0%   { transform: scale(.82) translateY(18px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.win-crown { animation: crown 1.1s ease-in-out .18s both; transform-origin: 50% 90%; }
+@keyframes crown {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25%      { transform: rotate(-9deg) scale(1.12); }
+  60%      { transform: rotate(7deg) scale(1.08); }
+}
+.game-card:active { transform: translateY(3px) scale(.985); }
+
+@media (prefers-reduced-motion: reduce) {
+  .win-card, .win-crown { animation: none; }
+}
+
+/* The build this device is running. Deliberately tiny — it is a fact for
+   whoever is debugging, not something a player should ever notice. */
+.version {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  opacity: .45;
+  font-size: 10px;
+  letter-spacing: .5px;
+}
+.version[hidden] { display: none; }

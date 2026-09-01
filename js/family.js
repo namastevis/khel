@@ -19,6 +19,16 @@ const KEY = 'khel.family';
    quietly leave its scores out of the house scoreboard. */
 const SCORED = () => GAMES.map((g) => g.id);
 
+/* Their own creature. A five-year-old can't read "Mamma" but reads a fox
+   instantly, so this is what makes the turn card legible to her — and
+   picking your own is the kind of small ownership that matters at that
+   age. The computer's players have had animals from the start; it was odd
+   that the actual family got a coloured dot and a word. */
+export const FACES = [
+  '🦊', '🐼', '🐰', '🐨', '🦁', '🐸', '🐵', '🐷',
+  '🐯', '🐮', '🐧', '🦄', '🐙', '🦋', '🐢', '🐝',
+];
+
 /* Their own colour, which is theirs whatever piece they play today. */
 export const TINTS = [
   '#F0544F', '#3FBF6F', '#FFC531', '#4A9BE8',
@@ -98,14 +108,30 @@ export function load() {
   const stored = read(KEY, null);
   if (stored?.members?.length) {
     members = stored.members;
+    if (giveFaces()) save();          // people who joined before faces existed
     return members;
   }
 
   if (!migrate()) {
-    members = SEED.map((name, i) => ({ id: newId(), name, tint: TINTS[i % TINTS.length] }));
+    members = SEED.map((name, i) => ({
+      id: newId(), name, tint: TINTS[i % TINTS.length], face: FACES[i % FACES.length],
+    }));
   }
+  giveFaces();
   save();
   return members;
+}
+
+/** Hands a creature to anyone who hasn't got one. True if anything changed. */
+function giveFaces() {
+  let changed = false;
+  for (const m of members) {
+    if (m.face) continue;
+    const taken = new Set(members.map((x) => x.face).filter(Boolean));
+    m.face = FACES.find((f) => !taken.has(f)) || FACES[0];
+    changed = true;
+  }
+  return changed;
 }
 
 export const all = () => members;
@@ -116,10 +142,12 @@ export const tintOf = (id) => byId(id)?.tint || TINTS[0];
 export function add(name = '') {
   if (members.length >= MAX_MEMBERS) return null;
   const used = new Set(members.map((m) => m.tint));
+  const taken = new Set(members.map((m) => m.face));
   const member = {
     id: newId(),
     name: name.trim() || 'Someone',
     tint: TINTS.find((t) => !used.has(t)) || TINTS[members.length % TINTS.length],
+    face: FACES.find((f) => !taken.has(f)) || FACES[members.length % FACES.length],
   };
   members.push(member);
   save();
@@ -137,6 +165,19 @@ export function recolour(id, tint) {
   const m = byId(id);
   if (!m) return;
   m.tint = tint;
+  save();
+}
+
+/* Two people sharing a creature would undo the whole point of having one,
+   so this is a swap rather than an assignment: whoever had it takes the
+   one being given up. The picker greys out taken creatures anyway — this
+   is the guarantee underneath it, true whatever the caller does. */
+export function reface(id, face) {
+  const m = byId(id);
+  if (!m || m.face === face) return;
+  const holder = members.find((x) => x.face === face && x.id !== id);
+  if (holder) holder.face = m.face;
+  m.face = face;
   save();
 }
 
@@ -184,3 +225,8 @@ export const listenerCount = () => listeners.length;
 
 /** The display name, never blank. */
 export const label = (id) => (byId(id)?.name || '').trim() || 'Someone';
+
+export const faceOf = (id) => byId(id)?.face || FACES[0];
+
+/** Face and name together — what a game shows on a turn card. */
+export const badge = (id) => `${faceOf(id)} ${label(id)}`;

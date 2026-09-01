@@ -11,7 +11,7 @@ import { GAMES } from './catalog.js';
 import * as family from './family.js';
 import { sfx, unlock, isMuted, toggleMute } from './audio.js';
 import { toast, hideToast } from './toast.js';
-import { readText, writeText, drop } from './store.js';
+import { readText, writeText, drop, readJSON } from './store.js';
 import { escapeHtml } from './text.js';
 
 const $ = (id) => document.getElementById(id);
@@ -47,7 +47,7 @@ function buildFamily() {
 
   $('family-row').innerHTML = standings.map((m) => `
     <button class="member" data-id="${m.id}" style="--tint:${m.tint}">
-      <span class="member-dot"></span>
+      <span class="member-dot">${m.face || ''}</span>
       <span class="member-name">${escapeHtml(m.name.trim() || 'Someone')}</span>
       ${m.wins ? `<span class="member-wins">🏆 ${m.wins}</span>` : ''}
     </button>`).join('')
@@ -65,11 +65,13 @@ function buildFamily() {
 /* ── adding or editing someone ─────────────────────────────── */
 let editing = null;          // member id, or null when adding
 let chosenTint = null;
+let chosenFace = null;
 
 function openMember(id) {
   editing = id;
   const member = id ? family.byId(id) : null;
   chosenTint = member ? member.tint : null;
+  chosenFace = member ? member.face : null;
 
   $('member-title').textContent = member ? 'Edit' : 'Add someone';
   $('member-name').value = member ? member.name : '';
@@ -77,6 +79,11 @@ function openMember(id) {
   $('member-note').textContent = member
     ? ''
     : 'They\'ll show up in every game, and keep their own score.';
+
+  const spoken = new Set(family.all().filter((m) => m.id !== id).map((m) => m.face));
+  $('member-faces').innerHTML = family.FACES.map((f) => `
+    <button class="face" data-face="${f}" aria-label="Creature"
+            aria-pressed="${f === chosenFace}" ${spoken.has(f) ? 'disabled' : ''}>${f}</button>`).join('');
 
   $('member-tints').innerHTML = family.TINTS.map((t) => `
     <button class="tint" data-tint="${t}" style="--tint:${t}"
@@ -96,13 +103,24 @@ function commitMember() {
   if (editing) {
     if (name) family.rename(editing, name);
     if (chosenTint) family.recolour(editing, chosenTint);
+    if (chosenFace) family.reface(editing, chosenFace);
   } else if (name) {
     const added = family.add(name);
     if (added && chosenTint) family.recolour(added.id, chosenTint);
+    if (added && chosenFace) family.reface(added.id, chosenFace);
   }
   closeMember();
   buildFamily();
 }
+
+$('member-faces').addEventListener('click', (ev) => {
+  const pick = ev.target.closest('.face');
+  if (!pick || pick.disabled) return;
+  chosenFace = pick.dataset.face;
+  sfx.pop();
+  $('member-faces').querySelectorAll('.face')
+    .forEach((f) => f.setAttribute('aria-pressed', String(f.dataset.face === chosenFace)));
+});
 
 $('member-tints').addEventListener('click', (ev) => {
   const swatch = ev.target.closest('.tint');
@@ -132,6 +150,24 @@ $('member-remove').addEventListener('click', () => {
   closeMember();
   buildFamily();
 });
+
+/* ── what happened last ────────────────────────────────────
+   One line, and deliberately only that: what was played and who won.
+   A fact, not a streak and not a goal — the difference between a menu
+   and something that knows who lives here. */
+function paintLastRound() {
+  const last = readJSON('khel.lastRound', null);
+  const line = $('last-round');
+  const game = last && GAMES.find((g) => g.id === last.game);
+  if (!last || !game) { line.hidden = true; return; }
+
+  const days = Math.floor((Date.now() - (last.at || 0)) / 86400000);
+  const when = days <= 0 ? 'Last time' : days === 1 ? 'Yesterday' : `${days} days ago`;
+  line.textContent = last.winner
+    ? `${when}: ${last.winner} won at ${game.title}`
+    : `${when}: ${game.title} ended in a draw`;
+  line.hidden = false;
+}
 
 /* ── routing ───────────────────────────────────────────────── */
 let active = null;          // { id, unmount }
@@ -193,7 +229,7 @@ function route() {
   const id = decodeURIComponent(location.hash.replace(/^#\/?/, '')).trim();
   const game = GAMES.find((g) => g.id === id);
   if (game) openGame(game.id);
-  else { closeGame(); show('shelf'); }
+  else { closeGame(); show('shelf'); paintLastRound(); }
 }
 
 window.addEventListener('hashchange', route);
@@ -309,12 +345,28 @@ paintInstallRoutes();
 family.load();
 buildShelf();
 buildFamily();
+paintLastRound();
 paintSound();
 route();
 family.onChange(buildFamily);
 
 // ask the browser not to throw the scores away when space runs short
 navigator.storage?.persist?.().catch(() => { /* not supported everywhere */ });
+
+/* ── which copy is this? ───────────────────────────────────
+   Read from the cache the device is actually serving from, not from a
+   constant that could drift out of step with it. An installed tablet has
+   no address bar and no reload button, so without this there is no way
+   to tell a stale copy from a current one except by noticing a game is
+   missing — which is how we found out last time. */
+async function paintVersion() {
+  try {
+    const mine = (await caches.keys()).filter((k) => k.startsWith('khel-v')).sort();
+    if (!mine.length) return;
+    $('version').textContent = mine[mine.length - 1];
+    $('version').hidden = false;
+  } catch { /* no cache API, or blocked */ }
+}
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // If a worker is already running the page, a new one taking over means a
@@ -330,9 +382,27 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     });
   }
 
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ });
+  window.addEventListener('load', async () => {
+    const reg = await navigator.serviceWorker.register('sw.js')
+      .catch(() => null);                    // offline support is optional
+    paintVersion();
+    if (!reg) return;
+
+    /* An installed app on iOS is very often suspended rather than closed:
+       tapping the icon restores the screen it was last on, and the page
+       never loads again, so nothing ever checks for a new version. This
+       asks whenever the app comes back to the front — throttled, because
+       it is a network request and this app is meant to work without one. */
+    let lastCheck = 0;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastCheck < 60 * 60 * 1000) return;
+      lastCheck = Date.now();
+      reg.update().catch(() => { /* offline: keep the copy we have */ });
+    });
   });
+} else {
+  paintVersion();
 }
 
 /* a little of the state, for the automated tests */

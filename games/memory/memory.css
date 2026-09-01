@@ -223,3 +223,24 @@
   .mcard-inner { transition: none; }
   .mfound.is-shown { animation-duration: .01s; opacity: 1; }
 }
+
+/* ── the moment a pair is won ────────────────────
+   Movement is read as the game noticing you, so the two cards swell and
+   settle rather than simply going pale. */
+.mcard.is-won .mcard-inner { animation: won .5s ease-out; }
+@keyframes won {
+  0%   { transform: rotateY(180deg) scale(1); }
+  35%  { transform: rotateY(180deg) scale(1.14); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
+
+.mscore.is-bumped { animation: bump .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes bump {
+  0%   { transform: translateY(-2px) scale(1); }
+  40%  { transform: translateY(-6px) scale(1.14); }
+  100% { transform: translateY(-2px) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mcard.is-won .mcard-inner, .mscore.is-bumped { animation: none; }
+}

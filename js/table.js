@@ -65,8 +65,8 @@ export function createTable(opts) {
   const isPerson = (who) => who !== 'cpu' && who !== 'off' && !!who;
   const labelOf = (colour) => {
     const who = occupants[colour];
-    if (who === 'cpu') return cpuNames[colour];
-    return isPerson(who) ? family.label(who) : colors[colour].name;
+    if (who === 'cpu') return `${cpuFaces[colour]} ${cpuNames[colour]}`;
+    return isPerson(who) ? family.badge(who) : colors[colour].name;
   };
 
   /* ── the seat cards ───────────────────────────────────────── */
@@ -74,6 +74,7 @@ export function createTable(opts) {
     <button class="seat" data-colour="${colour}" data-state="off"
             aria-label="Choose who plays ${colors[colour].name}">
       ${pawnSVG(colors[colour])}
+      <span class="seat-face" data-role="face"></span>
       <span class="seat-who" data-role="who"></span>
       <span class="seat-tally" data-role="tally"></span>
     </button>`).join('');
@@ -87,8 +88,10 @@ export function createTable(opts) {
       // the piece already says which colour it is, so the card only needs
       // the animal — the full "Yellow Duck" shows wherever there's room
       const animal = cpuNames[colour].split(' ').pop();
+      card.querySelector('[data-role="face"]').textContent =
+        who === 'cpu' ? cpuFaces[colour] : (isPerson(who) ? family.faceOf(who) : '');
       card.querySelector('[data-role="who"]').textContent =
-        who === 'cpu' ? `${cpuFaces[colour]} ${animal}` : (isPerson(who) ? family.label(who) : 'Empty');
+        who === 'cpu' ? animal : (isPerson(who) ? family.label(who) : 'Empty');
 
       const wins = isPerson(who) ? (tally[who] || 0) : 0;
       card.querySelector('[data-role="tally"]').textContent = wins ? `🏆 ${wins}` : '';
@@ -117,7 +120,7 @@ export function createTable(opts) {
     pickEl.querySelector('[data-role="pick-list"]').innerHTML = [
       ...family.all().map((m) => `
         <button class="pick-option" data-who="${m.id}" ${taken.has(m.id) ? 'disabled' : ''}>
-          <span class="pick-dot" style="background:${m.tint}"></span>
+          <span class="pick-dot" style="background:${m.tint}">${m.face || ''}</span>
           <span class="pick-name">${escapeHtml(m.name)}</span>
           ${occupants[colour] === m.id ? '<span class="pick-tick">✓</span>' : ''}
           ${taken.has(m.id) ? '<span class="pick-note">already playing</span>' : ''}
@@ -165,6 +168,19 @@ export function createTable(opts) {
   const offFamily = family.onChange(refresh);
 
   /* ── the score ────────────────────────────────────────────── */
+  /* One line the shelf shows next time the app is opened. Not a streak and
+     not a goal — just what happened last, so the shelf knows her rather
+     than being a menu. */
+  function rememberRound(winner) {
+    writeJSON('khel.lastRound', { game, winner, at: Date.now() });
+  }
+
+  /** A round that ended level: remembered, but nobody's win. */
+  function recordDraw() {
+    rememberRound(null);
+    return tallyText();
+  }
+
   /** The running score, as one line. Changes nothing. */
   function tallyText() {
     return order
@@ -181,6 +197,7 @@ export function createTable(opts) {
     if (isPerson(champion)) tally[champion] = (tally[champion] || 0) + 1;
     save();
     refresh();
+    rememberRound(labelOf(finishOrder[0]));
     return tallyText();
   }
 
@@ -196,6 +213,12 @@ export function createTable(opts) {
     refresh();
   }
 
+  /** Enough people to start without asking anything. */
+  function ready() {
+    const playing = order.filter((c) => occupants[c] !== 'off');
+    return playing.length >= 2 && order.some((c) => isPerson(occupants[c]));
+  }
+
   /** What the game itself needs: a kind and a name per colour. */
   function lineup() {
     const seats = {}, names = {};
@@ -208,7 +231,7 @@ export function createTable(opts) {
   }
 
   return {
-    refresh, recordWin, tallyText, soloVsComputer, lineup, closePicker,
+    refresh, recordWin, recordDraw, tallyText, ready, soloVsComputer, lineup, closePicker,
     /* The family outlives any one game, so its listener has to be let go
        when the game does — otherwise every visit leaves another one behind,
        holding on to a screen that no longer exists. */
