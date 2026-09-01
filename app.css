@@ -95,6 +95,60 @@ body {
 .tagline { margin: 0; color: var(--ink-soft); font-size: clamp(14px, 3.4vmin, 20px); }
 .setup-hint { margin: clamp(4px, 1.5vh, 14px) 0 0; color: var(--ink-soft); font-size: clamp(13px, 3vmin, 17px); }
 
+/* ───────────── add to home screen ───────────── */
+.install-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: min(460px, 94vw);
+  margin: clamp(4px, 1.4vh, 12px) 0 0;
+}
+.install-bar[hidden] { display: none; }
+
+.install-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  font-family: inherit;
+  border: 2px dashed var(--yellow);
+  background: var(--white);
+  border-radius: 18px;
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+.install-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
+.install-icon { font-size: clamp(22px, 5vmin, 30px); line-height: 1; }
+.install-text { display: flex; flex-direction: column; gap: 2px; }
+.install-text b { font-size: clamp(14px, 3.2vmin, 18px); }
+.install-text small { color: var(--ink-soft); font-size: clamp(11px, 2.6vmin, 14px); }
+
+.install-x {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: clamp(22px, 5vmin, 28px);
+  font-family: inherit;
+  line-height: 1;
+  padding: 0 10px;
+  cursor: pointer;
+  border-radius: 14px;
+}
+.install-x:active { background: rgba(67,51,31,.08); }
+
+.ios-note { margin: 0 0 6px; color: var(--ink-soft); font-size: clamp(14px, 3.2vmin, 17px); }
+.ios-glyph {
+  display: inline-block;
+  background: var(--blue);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0 7px;
+  font-size: .95em;
+}
+
 .seats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

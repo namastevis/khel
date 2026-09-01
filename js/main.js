@@ -2,7 +2,7 @@
    main.js — menu, player setup, screen switching, service worker.
    ═══════════════════════════════════════════════════════════════ */
 
-import { ORDER, COLORS, CPU_NAMES, cellOf } from './config.js';
+import { ORDER, COLORS, cellOf } from './config.js';
 import { createController } from './game.js';
 import { sfx, unlock, isMuted, toggleMute } from './audio.js';
 
@@ -30,9 +30,11 @@ function pawnSVG(color) {
   </svg>`;
 }
 
+/* The card stays short so it never wraps; the computer's full name
+   ("Robo Red") shows on the board, where there is room for it.       */
 function seatLabel(color) {
   if (seats[color] === 'human') return `🙂 ${COLORS[color].name}`;
-  if (seats[color] === 'cpu') return `🤖 ${CPU_NAMES[color]}`;
+  if (seats[color] === 'cpu') return `🤖 ${COLORS[color].name}`;
   return 'Not playing';
 }
 
@@ -126,6 +128,66 @@ paintSound();
 
 /* keep the board sized correctly when the keyboard/toolbars move around */
 if (window.visualViewport) window.visualViewport.addEventListener('resize', () => game.layout());
+
+/* ── add to home screen ────────────────────────────────────
+   Android and desktop fire `beforeinstallprompt`, which we save and
+   replay when the button is tapped. iOS never fires it — Safari only
+   installs through the share sheet — so there we show the steps.     */
+
+const installed = () =>
+  matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS pretends to be a Mac
+
+let deferredInstall = null;
+
+const NUDGE_AGAIN_AFTER = 7 * 24 * 60 * 60 * 1000;   // a stray tap shouldn't hide it forever
+
+function dismissed() {
+  try {
+    const at = Number(localStorage.getItem('ludo.installDismissedAt') || 0);
+    return at > 0 && Date.now() - at < NUDGE_AGAIN_AFTER;
+  } catch { return false; }
+}
+
+function showInstallBar() {
+  if (installed() || dismissed()) return;
+  $('install-bar').hidden = false;
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  showInstallBar();
+});
+
+window.addEventListener('appinstalled', () => {
+  $('install-bar').hidden = true;
+  try { localStorage.removeItem('ludo.installDismissedAt'); } catch { /* ignore */ }
+});
+
+$('btn-install').addEventListener('click', async () => {
+  sfx.tap();
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice;
+    deferredInstall = null;
+    if (outcome === 'accepted') $('install-bar').hidden = true;
+    return;
+  }
+  $('ios-overlay').classList.add('is-active');       // iOS, or a browser with no prompt API
+});
+
+$('btn-ios-close').addEventListener('click', () => $('ios-overlay').classList.remove('is-active'));
+
+$('btn-install-x').addEventListener('click', () => {
+  $('install-bar').hidden = true;
+  try { localStorage.setItem('ludo.installDismissedAt', String(Date.now())); } catch { /* ignore */ }
+});
+
+// iOS gets no event, so decide straight away
+if (isIOS) showInstallBar();
 
 /* ── service worker (offline) ──────────────────────────────── */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

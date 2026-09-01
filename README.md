@@ -37,14 +37,16 @@ service workers both need `http://`.)
 ## Tests
 
 ```bash
-npm test              # plays 3000 full games and checks the rules never break
-npm i && npm run test:browser   # drives the real game in headless Chromium
+npm test                        # plays 3000 full games; checks the rules never break
+npm i                           # Playwright, for the two browser tests
+npm run test:browser            # drives the real game in headless Chromium
+npm run test:install            # checks the Add to Home Screen flow
 ```
 
 `test/simulate.mjs` has no dependencies — it imports the rules engine directly and
 asserts that no piece ever lands on an impossible square, that two colours never
 share an unsafe square, that entry is only offered on a 6, and that the winner
-really does have all four pieces home. `test/browser.mjs` needs Playwright.
+really does have all four pieces home. The other two need Playwright.
 
 ## Deploying
 
@@ -85,8 +87,17 @@ any geometry.
 
 ## Installing on a tablet
 
-- **iPad / iPhone:** open the link in Safari → Share → *Add to Home Screen*.
-- **Android:** open in Chrome → menu → *Install app*.
+The landing page offers this itself, and only when it is worth offering:
 
-It then launches full-screen with no browser chrome, and works with the tablet in
-aeroplane mode.
+- **Android / desktop** — the browser fires `beforeinstallprompt`, which the page
+  saves and replays when the button is tapped, so it is the real native install.
+- **iPad / iPhone** — Safari has no such API and only installs through the share
+  sheet, so the button opens the three steps instead.
+- **Already installed** — `display-mode: standalone` (or `navigator.standalone` on
+  iOS) is true, so the bar never appears at all.
+
+Dismissing it is remembered, but only for a week, so one stray tap by a child
+doesn't hide it for good.
+
+Once installed it launches full-screen with no browser chrome and works with the
+tablet in aeroplane mode.

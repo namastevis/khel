@@ -26,6 +26,17 @@
     </h1>
     <p class="tagline">No ads. No internet needed. Just play.</p>
 
+    <div id="install-bar" class="install-bar" hidden>
+      <button id="btn-install" class="install-btn">
+        <span class="install-icon">&#128241;</span>
+        <span class="install-text">
+          <b>Add to Home Screen</b>
+          <small>Play offline, full screen, like a real app</small>
+        </span>
+      </button>
+      <button id="btn-install-x" class="install-x" aria-label="Not now">&times;</button>
+    </div>
+
     <p class="setup-hint">Tap a colour to change who plays</p>
 
     <div class="seats" id="seats"></div>
@@ -77,6 +88,20 @@
     <p id="win-sub">Well played!</p>
     <button id="btn-again" class="big-btn">Play again</button>
     <button id="btn-menu" class="ghost-btn">Change players</button>
+  </div>
+</div>
+
+<!-- ══════════════ iOS INSTALL STEPS ══════════════ -->
+<div id="ios-overlay" class="overlay">
+  <div class="help-card">
+    <h2>Put it on the Home Screen</h2>
+    <p class="ios-note">Safari can keep this like a real app &mdash; full screen, and it works with no internet.</p>
+    <ol>
+      <li>Tap the <b>Share</b> button <span class="ios-glyph" aria-hidden="true">&#9053;</span> at the bottom of Safari (or top right on an iPad).</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b>. The Ludo board icon appears with your other apps.</li>
+    </ol>
+    <button id="btn-ios-close" class="big-btn">Got it</button>
   </div>
 </div>
 
