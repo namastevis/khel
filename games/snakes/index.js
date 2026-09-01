@@ -9,8 +9,6 @@ import { unlock } from '../../js/audio.js';
 
 export const meta = { id: 'snakes', title: 'Snakes & Ladders' };
 
-const DEFAULT_NAMES = { red: 'Chueen', green: 'Mama', yellow: 'Papa', blue: 'Dada' };
-const STARTING_SEATS = { red: 'human', green: 'human', yellow: 'off', blue: 'off' };
 
 const TEMPLATE = `
 <div class="snakes">
@@ -19,7 +17,7 @@ const TEMPLATE = `
     <div class="setup-wrap">
       <h2 class="game-name">Snakes &amp; Ladders</h2>
       <p class="setup-who">Who's playing?</p>
-      <p class="setup-hint">Tap a piece to swap between a person, the computer, and nobody &middot; tap a name to change it</p>
+      <p class="setup-hint">Tap a piece to choose who plays it</p>
 
       <div class="seats" data-el="seats"></div>
 
@@ -89,6 +87,14 @@ const TEMPLATE = `
     </div>
   </div>
 
+
+  <div class="sheet" data-el="pick">
+    <div class="sheet-card">
+      <h2 class="sheet-title" data-role="pick-title">Who's playing?</h2>
+      <div class="pick-list" data-role="pick-list"></div>
+      <button class="ghost-btn" data-role="pick-close">Close</button>
+    </div>
+  </div>
 </div>`;
 
 export function mount(host, shell) {
@@ -101,12 +107,11 @@ export function mount(host, shell) {
     seatsEl: el('seats'),
     playEl: el('play'),
     resetEl: el('reset'),
-    prefix: 'khel.snakes',
+    pickEl: el('pick'),
+    game: 'snakes',
     order: ORDER,
     colors: COLORS,
     cpuNames: CPU_NAMES,
-    defaults: DEFAULT_NAMES,
-    startingSeats: STARTING_SEATS,
   });
 
   const showSetup = () => {
@@ -125,7 +130,7 @@ export function mount(host, shell) {
   function start() {
     unlock();
     showBoard();
-    game.start({ ...table.seats }, { ...table.names });
+    game.start(...table.lineup());
   }
 
   const on = (name, ev, fn) => el(name).addEventListener(ev, fn);
@@ -137,6 +142,7 @@ export function mount(host, shell) {
   on('back', 'click', () => shell.goHome());
 
   on('quit', 'click', () => {
+    table.closePicker();
     game.stop();
     el('winOverlay').classList.remove('is-active');
     shell.goHome();
@@ -144,7 +150,7 @@ export function mount(host, shell) {
 
   on('again', 'click', () => {
     el('winOverlay').classList.remove('is-active');
-    game.start({ ...table.seats }, { ...table.names });
+    game.start(...table.lineup());
   });
 
   on('changePlayers', 'click', () => {

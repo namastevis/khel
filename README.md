@@ -13,13 +13,30 @@ completely offline.
 
 ## On the shelf
 
-| Game | | |
-|---|---|---|
-| **Ludo** | Race your four pieces home | 2–4 round one tablet, or one vs the computer |
-| **Snakes & Ladders** | Climb the ladders, dodge the snakes | 2–4 round one tablet, or one vs the computer |
+| Game | |
+|---|---|
+| **Ludo** | Race your four pieces home |
+| **Snakes & Ladders** | Climb the ladders, dodge the snakes |
 
-Both games share the shell's setup screen, so the table of people, the names and the
-running score work the same way in each — and each keeps its own scores.
+Both seat two to four people round one device, in any mix of people and computer
+opponents. Both use the same setup screen, so the family, the seats and the running
+score work the same way — and each keeps its own scores.
+
+## The family
+
+Everyone who plays is a record with an id that never changes; the name is a label on
+it. So correcting a spelling is an edit, not a new person, and the score follows —
+which name-keyed scores could never do. A seat holds a member's id, the computer, or
+nobody, and choosing is a picker of faces rather than a text box, which a small player
+can use without being able to spell.
+
+The row lives under the games on the shelf: tap someone to rename or recolour them,
+tap ＋ to add someone, and their wins across every game show beside their name. It's
+the house scoreboard as well as the roster. Removing someone takes their scores with
+them, and asks twice.
+
+`js/family.js` owns all of it, and carries the old name-keyed scores across on first
+load so nothing built up before this is lost.
 
 ## Ludo
 
@@ -36,9 +53,9 @@ running score work the same way in each — and each keeps its own scores.
 - **Everyone gets a placing.** A round doesn't stop when the first player is home —
   the rest play on for 2nd, 3rd and 4th, so nobody is simply cut off. The win card is
   a podium.
-- **A running score.** Wins are counted against the name, not the colour, so Chueen
-  keeps her tally whichever piece she picks. It shows on the seats and on the win card,
-  lives on that device only, and there's a *Clear the scores* when it stops being fun.
+- **A running score.** Counted against the person, not the piece or the spelling of
+  their name. It shows on the seats and on the win card, lives on that device only, and
+  there's a *Clear the scores* when it stops being fun.
 - **Built for touch** — big pieces, big dice, portrait and landscape.
 
 The computer opponents play sensibly but not ruthlessly: they take a merely-fine move
@@ -82,7 +99,8 @@ index.html            the shelf, and the empty host a game mounts into
 app.css               the shell: colours, buttons, overlays, toast, cards
 js/shell.js           routing, the install banner, sound, service worker
 js/catalog.js         what's on the shelf — one row per game
-js/table.js           "who's playing" — seats, names, the running score
+js/family.js          who lives here — the roster, and wins across every game
+js/table.js           "who's playing" — the seats for one game, and its scores
 js/pawn.js            the playing piece, on canvas and as SVG
 js/dice.js            one fair roll, and the pips that show it
 js/audio.js           sounds, generated in the browser; no audio files

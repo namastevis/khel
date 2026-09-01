@@ -9,7 +9,7 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v2';
+const CACHE = 'khel-v3';
 
 const ASSETS = [
   './',
@@ -22,6 +22,7 @@ const ASSETS = [
   'js/audio.js',
   'js/toast.js',
   'js/table.js',
+  'js/family.js',
   'js/pawn.js',
   'js/dice.js',
   'js/confetti.js',

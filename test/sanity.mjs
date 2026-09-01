@@ -144,6 +144,8 @@ const files = shipped();
   const git = (...args) =>
     execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   const cacheIn = (rev) => (git('show', `${rev}:sw.js`).match(/const CACHE = '([^']+)'/) || [])[1];
+  // compare what's about to ship — the working tree — not the last commit
+  const onDisk = (read('sw.js').match(/const CACHE = '([^']+)'/) || [])[1];
 
   try {
     // compare against what's actually deployed, if we know it
@@ -157,11 +159,11 @@ const files = shipped();
 
     if (!changed.length) {
       ok(`nothing shipped has changed since ${baseline}`);
-    } else if (cacheIn(baseline) === cacheIn('HEAD') && cacheIn('HEAD')) {
+    } else if (cacheIn(baseline) === onDisk) {
       fail(`${changed.length} shipped file(s) changed since ${baseline}, but CACHE is still `
-        + `"${cacheIn(baseline)}" — run: npm run release`);
+        + `"${onDisk}" — run: npm run release`);
     } else {
-      ok(`cache bumped for this deploy: ${cacheIn(baseline)} → ${cacheIn('HEAD')}`);
+      ok(`cache bumped for this deploy: ${cacheIn(baseline)} → ${onDisk}`);
     }
   } catch {
     console.log('  ·  not a git checkout — skipping the deploy check');

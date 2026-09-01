@@ -21,7 +21,7 @@ const TEMPLATE = `
     <div class="setup-wrap">
       <h2 class="game-name">Ludo</h2>
       <p class="setup-who">Who's playing?</p>
-      <p class="setup-hint">Tap a piece to swap between a person, the computer, and nobody &middot; tap a name to change it</p>
+      <p class="setup-hint">Tap a piece to choose who plays it</p>
 
       <div class="seats" data-el="seats"></div>
 
@@ -92,13 +92,16 @@ const TEMPLATE = `
     </div>
   </div>
 
+
+  <div class="sheet" data-el="pick">
+    <div class="sheet-card">
+      <h2 class="sheet-title" data-role="pick-title">Who's playing?</h2>
+      <div class="pick-list" data-role="pick-list"></div>
+      <button class="ghost-btn" data-role="pick-close">Close</button>
+    </div>
+  </div>
 </div>`;
 
-/* Who's usually round the table. Every one of these is editable on the
-   setup screen, and the edits are remembered on that device — this is
-   only what a fresh tablet starts with. */
-const DEFAULT_NAMES = { red: 'Chueen', green: 'Mama', yellow: 'Papa', blue: 'Dada' };
-const STARTING_SEATS = { red: 'human', green: 'human', yellow: 'off', blue: 'off' };
 
 export function mount(host, shell) {
   host.innerHTML = TEMPLATE;
@@ -110,12 +113,11 @@ export function mount(host, shell) {
     seatsEl: el('seats'),
     playEl: el('play'),
     resetEl: el('reset'),
-    prefix: 'khel.ludo',
+    pickEl: el('pick'),
+    game: 'ludo',
     order: ORDER,
     colors: COLORS,
     cpuNames: CPU_NAMES,
-    defaults: DEFAULT_NAMES,
-    startingSeats: STARTING_SEATS,
   });
 
   /* ── screens ── */
@@ -135,7 +137,7 @@ export function mount(host, shell) {
   function start() {
     unlock();
     showBoard();
-    game.start({ ...table.seats }, { ...table.names });
+    game.start(...table.lineup());
   }
 
   /* ── wiring ── */
@@ -150,6 +152,7 @@ export function mount(host, shell) {
   on('back', 'click', () => shell.goHome());
 
   on('quit', 'click', () => {
+    table.closePicker();
     game.stop();
     el('winOverlay').classList.remove('is-active');
     shell.goHome();
@@ -157,7 +160,7 @@ export function mount(host, shell) {
 
   on('again', 'click', () => {
     el('winOverlay').classList.remove('is-active');
-    game.start({ ...table.seats }, { ...table.names });
+    game.start(...table.lineup());
   });
 
   on('changePlayers', 'click', () => {
@@ -170,11 +173,7 @@ export function mount(host, shell) {
   showSetup();
 
   /* for the automated tests */
-  globalThis.LUDO = {
-    game, start, geom: { cellOf },
-    seats: table.seats, names: table.names,
-    refreshSeats: table.refresh,
-  };
+  globalThis.LUDO = { game, table, start, geom: { cellOf } };
 
   return function unmount() {
     game.destroy();

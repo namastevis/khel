@@ -1,98 +1,101 @@
 /* ═══════════════════════════════════════════════════════════════
-   table.js — "who's playing", shared by every game that seats
-   two to four people round one device.
+   table.js — "who's playing", shared by every game that seats two
+   to four people round one device.
 
-   Owns: the seat cards, whose seat is whose, the names people type,
-   the running score, and remembering all of it on this device.
-   Knows nothing about any particular game.
+   A seat holds a family member's id, 'cpu', or 'off'. Nobody types a
+   name here: they pick a face. Scores are counted against the member
+   id, so they survive a rename and never fork on a typo.
    ═══════════════════════════════════════════════════════════════ */
 
+import * as family from './family.js';
 import { pawnSVG } from './pawn.js';
 import { sfx, unlock } from './audio.js';
-
-const CYCLE = { human: 'cpu', cpu: 'off', off: 'human' };
 
 /**
  * @param opts.seatsEl   container for the seat cards
  * @param opts.playEl    the Play button (its label tracks the table)
- * @param opts.resetEl   the "clear the scores" button (hidden when there's nothing to clear)
- * @param opts.prefix    localStorage prefix, e.g. 'khel.ludo'
+ * @param opts.resetEl   "clear the scores" (hidden when there's nothing to clear)
+ * @param opts.pickEl    the sheet that opens when a seat is tapped
+ * @param opts.game      'ludo' — used for this game's own seats and scores
  * @param opts.order     colour keys, in turn order
  * @param opts.colors    { red: { main, dark, name }, … }
  * @param opts.cpuNames  { red: 'Robo Red', … }
- * @param opts.defaults  { red: 'Chueen', … } — a fresh device's table
  */
 export function createTable(opts) {
-  const { seatsEl, playEl, resetEl, prefix, order, colors, cpuNames, defaults } = opts;
-
-  const seats = { ...opts.startingSeats };
-  const names = { ...defaults };
-  let tally = {};
+  const { seatsEl, playEl, resetEl, pickEl, game, order, colors, cpuNames } = opts;
+  const KEY = { seats: `khel.${game}.seats`, tally: `khel.${game}.tally` };
 
   const read = (key, fallback) => {
-    try { return JSON.parse(localStorage.getItem(`${prefix}.${key}`) || 'null') ?? fallback; }
-    catch { return fallback; }          // private mode, or something we didn't write
+    try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+    catch { return fallback; }
+  };
+  const write = (key, value) => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
   };
 
-  const savedSeats = read('seats', null);
-  if (savedSeats && order.every((c) => ['human', 'cpu', 'off'].includes(savedSeats[c]))) {
-    Object.assign(seats, savedSeats);
+  /* ── who is in which seat ─────────────────────────────────── */
+  let occupants = read(KEY.seats, null) || {};
+  let tally = read(KEY.tally, {}) || {};
+
+  function tidy() {
+    // a seat pointing at someone who has left the family is empty again
+    for (const colour of order) {
+      const who = occupants[colour];
+      if (who !== 'cpu' && who !== 'off' && !family.byId(who)) occupants[colour] = 'off';
+    }
+    // and nobody sits in two seats at once
+    const seen = new Set();
+    for (const colour of order) {
+      const who = occupants[colour];
+      if (who === 'cpu' || who === 'off' || !who) continue;
+      if (seen.has(who)) occupants[colour] = 'off'; else seen.add(who);
+    }
+    if (order.every((c) => occupants[c] === 'off' || !occupants[c])) seatFirstTwo();
   }
-  const savedNames = read('names', null);
-  if (savedNames && order.every((c) => typeof savedNames[c] === 'string')) {
-    Object.assign(names, savedNames);
-  }
-  tally = read('tally', {}) || {};
 
-  function save() {
-    try {
-      localStorage.setItem(`${prefix}.seats`, JSON.stringify(seats));
-      localStorage.setItem(`${prefix}.names`, JSON.stringify(names));
-      localStorage.setItem(`${prefix}.tally`, JSON.stringify(tally));
-    } catch { /* ignore */ }
+  function seatFirstTwo() {
+    const people = family.all();
+    order.forEach((colour, i) => { occupants[colour] = people[i] ? people[i].id : 'off'; });
+    for (const colour of order.slice(2)) occupants[colour] = 'off';
   }
 
-  // clearing a name shouldn't leave a nameless player at the table
-  const nameOf = (c) => names[c].trim() || defaults[c] || colors[c].name;
+  if (!Object.keys(occupants).length) seatFirstTwo();
+  tidy();
 
-  // what this seat is called in the scores, person or computer
-  const labelFor = (c) => (seats[c] === 'cpu' ? cpuNames[c] : nameOf(c));
+  const save = () => { write(KEY.seats, occupants); write(KEY.tally, tally); };
 
-  seatsEl.innerHTML = order.map((color) => `
-    <div class="seat" data-color="${color}" data-state="${seats[color]}">
-      <button class="seat-pawn" data-role="cycle" aria-label="Change who plays ${colors[color].name}">
-        ${pawnSVG(colors[color])}
-      </button>
-      <input class="seat-name" data-role="name" maxlength="10" spellcheck="false"
-             autocapitalize="words" autocomplete="off" enterkeyhint="done"
-             aria-label="Name of the ${colors[color].name} player" value="${nameOf(color)}" />
-      <span class="seat-fixed" data-role="fixed"></span>
+  const isPerson = (who) => who !== 'cpu' && who !== 'off' && !!who;
+  const labelOf = (colour) => {
+    const who = occupants[colour];
+    if (who === 'cpu') return cpuNames[colour];
+    return isPerson(who) ? family.label(who) : colors[colour].name;
+  };
+
+  /* ── the seat cards ───────────────────────────────────────── */
+  seatsEl.innerHTML = order.map((colour) => `
+    <button class="seat" data-colour="${colour}" data-state="off"
+            aria-label="Choose who plays ${colors[colour].name}">
+      ${pawnSVG(colors[colour])}
+      <span class="seat-who" data-role="who"></span>
       <span class="seat-tally" data-role="tally"></span>
-    </div>`).join('');
+    </button>`).join('');
 
   function refresh() {
+    tidy();
     seatsEl.querySelectorAll('.seat').forEach((card) => {
-      const color = card.dataset.color;
-      card.dataset.state = seats[color];
+      const colour = card.dataset.colour;
+      const who = occupants[colour];
+      card.dataset.state = who === 'cpu' ? 'cpu' : (isPerson(who) ? 'human' : 'off');
+      card.querySelector('[data-role="who"]').textContent =
+        who === 'cpu' ? `🤖 ${cpuNames[colour]}` : (isPerson(who) ? family.label(who) : 'Empty');
 
-      const input = card.querySelector('[data-role="name"]');
-      const fixed = card.querySelector('[data-role="fixed"]');
-
-      // only a person gets to be called something
-      if (seats[color] === 'human') {
-        if (document.activeElement !== input) input.value = nameOf(color);
-      } else {
-        fixed.textContent = seats[color] === 'cpu' ? `🤖 ${cpuNames[color]}` : 'Not playing';
-      }
-
-      const wins = tally[labelFor(color)] || 0;
-      card.querySelector('[data-role="tally"]').textContent =
-        seats[color] === 'off' || !wins ? '' : `🏆 ${wins}`;
+      const wins = isPerson(who) ? (tally[who] || 0) : 0;
+      card.querySelector('[data-role="tally"]').textContent = wins ? `🏆 ${wins}` : '';
     });
 
-    const playing = order.filter((c) => seats[c] !== 'off');
-    const humans = order.filter((c) => seats[c] === 'human');
-    const ok = playing.length >= 2 && humans.length >= 1;
+    const playing = order.filter((c) => occupants[c] !== 'off');
+    const people = order.filter((c) => isPerson(occupants[c]));
+    const ok = playing.length >= 2 && people.length >= 1;
     playEl.disabled = !ok;
     playEl.textContent = ok
       ? (playing.length === 2 ? 'Play' : `Play with ${playing.length}`)
@@ -102,32 +105,78 @@ export function createTable(opts) {
     save();
   }
 
-  /* ── the seat cards ──────────────────────────────────────── */
+  /* ── choosing who sits here ───────────────────────────────── */
+  let pickingColour = null;
+
+  function openPicker(colour) {
+    pickingColour = colour;
+    const taken = new Set(order.filter((c) => c !== colour && isPerson(occupants[c])).map((c) => occupants[c]));
+
+    pickEl.querySelector('[data-role="pick-title"]').textContent = `Who's playing ${colors[colour].name}?`;
+    pickEl.querySelector('[data-role="pick-list"]').innerHTML = [
+      ...family.all().map((m) => `
+        <button class="pick-option" data-who="${m.id}" ${taken.has(m.id) ? 'disabled' : ''}>
+          <span class="pick-dot" style="background:${m.tint}"></span>
+          <span class="pick-name">${escape(m.name)}</span>
+          ${occupants[colour] === m.id ? '<span class="pick-tick">✓</span>' : ''}
+          ${taken.has(m.id) ? '<span class="pick-note">already playing</span>' : ''}
+        </button>`),
+      `<button class="pick-option" data-who="cpu">
+         <span class="pick-dot pick-robot">🤖</span>
+         <span class="pick-name">${cpuNames[colour]}</span>
+         ${occupants[colour] === 'cpu' ? '<span class="pick-tick">✓</span>' : ''}
+       </button>`,
+      `<button class="pick-option" data-who="off">
+         <span class="pick-dot pick-empty"></span>
+         <span class="pick-name">Nobody</span>
+         ${occupants[colour] === 'off' ? '<span class="pick-tick">✓</span>' : ''}
+       </button>`,
+    ].join('');
+
+    pickEl.classList.add('is-active');
+  }
+
+  function closePicker() {
+    pickEl.classList.remove('is-active');
+    pickingColour = null;
+  }
+
   seatsEl.addEventListener('click', (ev) => {
-    const pawn = ev.target.closest('[data-role="cycle"]');
-    if (!pawn) return;
-    const color = pawn.closest('.seat').dataset.color;
+    const card = ev.target.closest('.seat');
+    if (!card) return;
     unlock();
-    seats[color] = CYCLE[seats[color]];
     sfx.tap();
-    refresh();
+    openPicker(card.dataset.colour);
   });
 
-  seatsEl.addEventListener('input', (ev) => {
-    const input = ev.target.closest('[data-role="name"]');
-    if (!input) return;
-    names[input.closest('.seat').dataset.color] = input.value;
+  pickEl.addEventListener('click', (ev) => {
+    const option = ev.target.closest('.pick-option');
+    if (option && !option.disabled && pickingColour) {
+      occupants[pickingColour] = option.dataset.who;
+      sfx.tap();
+      closePicker();
+      refresh();
+      return;
+    }
+    if (ev.target === pickEl || ev.target.closest('[data-role="pick-close"]')) closePicker();
+  });
+
+  family.onChange(() => refresh());
+
+  /* ── the score ────────────────────────────────────────────── */
+  function recordWin(finishOrder) {
+    const champion = occupants[finishOrder[0]];
+    if (isPerson(champion)) tally[champion] = (tally[champion] || 0) + 1;
     save();
-  });
+    refresh();
 
-  // typing a name and hitting return shouldn't leave the keyboard up
-  seatsEl.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' && ev.target.closest('[data-role="name"]')) ev.target.blur();
-  });
-
-  seatsEl.addEventListener('blur', (ev) => {
-    if (ev.target.closest('[data-role="name"]')) refresh();
-  }, true);
+    return order
+      .filter((c) => occupants[c] !== 'off')
+      .map((c) => ({ name: labelOf(c), wins: isPerson(occupants[c]) ? (tally[occupants[c]] || 0) : 0 }))
+      .sort((a, b) => b.wins - a.wins)
+      .map(({ name, wins }) => `${name} ${wins}`)
+      .join('  ·  ');
+  }
 
   resetEl?.addEventListener('click', () => {
     tally = {};
@@ -135,31 +184,29 @@ export function createTable(opts) {
     refresh();
   });
 
-  /* ── the score ───────────────────────────────────────────── */
-  function recordWin(finishOrder) {
-    const name = labelFor(finishOrder[0]);
-    tally[name] = (tally[name] || 0) + 1;
-    save();
+  function soloVsComputer() {
+    const first = family.all()[0];
+    order.forEach((c, i) => { occupants[c] = i === 0 ? (first?.id || 'off') : (i === 1 ? 'cpu' : 'off'); });
     refresh();
-
-    return order
-      .filter((c) => seats[c] !== 'off')
-      .map((c) => ({ name: labelFor(c), wins: tally[labelFor(c)] || 0 }))
-      .sort((a, b) => b.wins - a.wins)
-      .map(({ name: n, wins }) => `${n} ${wins}`)
-      .join('  ·  ');
   }
 
-  function soloVsComputer() {
-    const [first, second] = order;
-    for (const c of order) seats[c] = 'off';
-    seats[first] = 'human';
-    seats[second] = 'cpu';
-    refresh();
+  /** What the game itself needs: a kind and a name per colour. */
+  function lineup() {
+    const seats = {}, names = {};
+    for (const colour of order) {
+      const who = occupants[colour];
+      seats[colour] = who === 'cpu' ? 'cpu' : (isPerson(who) ? 'human' : 'off');
+      names[colour] = labelOf(colour);
+    }
+    return [seats, names];
   }
 
   return {
-    seats, names, refresh, labelFor, recordWin, soloVsComputer,
-    get tally() { return tally; },
+    refresh, recordWin, soloVsComputer, lineup, closePicker,
+    get occupants() { return occupants; },
+    assign(colour, who) { occupants[colour] = who; refresh(); },
   };
 }
+
+const escape = (s) => String(s).replace(/[&<>"]/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

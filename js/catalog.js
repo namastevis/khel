@@ -1,6 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    catalog.js — what's on the shelf.
 
+   `note` is deliberately absent from both games: a line that says the
+   same thing on every card isn't telling anyone which game to pick.
+   Give a game a note only when it differs from the house rule of two
+   to four people round one device — a solo puzzle, say.
+
    Adding a game is: drop a folder in games/<id>/ that exports
    `mount(host)`, add a row here, and add its files to sw.js.
    Nothing else in the shell needs to change.
@@ -11,7 +16,6 @@ export const GAMES = [
     id: 'ludo',
     title: 'Ludo',
     blurb: 'Race your four pieces home',
-    players: '2–4 round one tablet · or one vs the computer',
     accent: 'var(--red)',
     art: ludoArt,
   },
@@ -19,7 +23,6 @@ export const GAMES = [
     id: 'snakes',
     title: 'Snakes & Ladders',
     blurb: 'Climb the ladders, dodge the snakes',
-    players: '2–4 round one tablet · or one vs the computer',
     accent: 'var(--green)',
     art: snakesArt,
   },

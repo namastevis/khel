@@ -15,15 +15,29 @@ const errors = [];
 const results = [];
 const check = (label, pass) => results.push([label, pass]);
 
-async function open(name, viewport) {
+async function open(name, viewport, init) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[${name}] ${e.message}`));
+  if (init) await page.addInitScript(init.fn, init.arg);
   await page.goto(`http://localhost:${PORT}/`);
   await page.waitForTimeout(400);
   return { ctx, page };
 }
+
+/* A loaded die, so that a test about finishing a round isn't a test
+   about luck. rollDie() reads one byte and returns (byte % 6) + 1. */
+const alwaysRolls = (value) => ({
+  arg: value,
+  fn: (want) => {
+    const real = crypto.getRandomValues.bind(crypto);
+    crypto.getRandomValues = (buf) => {
+      if (buf.length === 1) { buf[0] = want - 1; return buf; }
+      return real(buf);
+    };
+  },
+});
 
 /* ── the shelf, and getting in and out of a game ── */
 {
@@ -39,44 +53,43 @@ async function open(name, viewport) {
   check('Ludo\'s setup screen is up', await page.isVisible('[data-screen="setup"]'));
   await page.screenshot({ path: '/tmp/khel-ludo-setup.png' });
 
-  // the table is named people, not colours
+  // the seats are filled from the family, and nobody types a name here
   const shown = await page.$$eval('.seat', (cards) => cards.map((c) => ({
     state: c.dataset.state,
-    name: c.querySelector('[data-role="name"]').value,
-    fixed: c.querySelector('[data-role="fixed"]').textContent,
+    who: c.querySelector('[data-role="who"]').textContent,
   })));
-  check('seats start with family names', shown.map((s) => s.name).join(',') === 'Chueen,Mama,Papa,Dada');
-  check('it starts set up for two people, not one',
-    shown.filter((s) => s.state === 'human').length === 2);
-  check('a person\'s name is editable', await page.isVisible('.seat[data-state="human"] [data-role="name"]'));
-  check('an empty seat has no name to edit', !(await page.isVisible('.seat[data-state="off"] [data-role="name"]')));
+  check('the family fills the first two seats',
+    shown.slice(0, 2).map((s) => s.who).join(',') === 'Chueen,Mama');
+  check('the rest start empty', shown.slice(2).every((s) => s.state === 'off'));
 
-  // rename someone, and check it reaches the board
-  await page.fill('.seat[data-color="red"] [data-role="name"]', 'Nani');
+  // tapping a seat opens the picker rather than a text box
+  await page.click('.seat[data-colour="yellow"]');
+  await page.waitForTimeout(250);
+  check('tapping a seat opens the picker', await page.isVisible('[data-el="pick"].is-active'));
+  check('people already seated can\'t be picked twice',
+    await page.evaluate(() => [...document.querySelectorAll('.pick-option')]
+      .some((o) => o.disabled && o.textContent.includes('Chueen'))));
+
+  await page.click('.pick-option[data-who="cpu"]');
+  await page.waitForTimeout(250);
+  check('picking the computer fills the seat',
+    (await page.getAttribute('.seat[data-colour="yellow"]', 'data-state')) === 'cpu');
+
+  await page.click('.seat[data-colour="yellow"]');
+  await page.waitForTimeout(200);
+  await page.click('.pick-option[data-who="off"]');
+  await page.waitForTimeout(200);
+  check('and emptying it again works',
+    (await page.getAttribute('.seat[data-colour="yellow"]', 'data-state')) === 'off');
+
   await page.click('[data-el="play"]');
   await page.waitForTimeout(900);
-  check('the renamed player is announced on the board',
-    (await page.textContent('[data-el="turnName"]')) === 'Nani');
-
+  check('the family name is announced on the board',
+    (await page.textContent('[data-el="turnName"]')) === 'Chueen');
   await page.click('[data-el="quit"]');
   await page.waitForTimeout(400);
   await page.goto(`http://localhost:${PORT}/#/ludo`);
   await page.waitForTimeout(700);
-  check('the new name is remembered next time',
-    (await page.inputValue('.seat[data-color="red"] [data-role="name"]')) === 'Nani');
-  await page.fill('.seat[data-color="red"] [data-role="name"]', 'Chueen');
-  await page.waitForTimeout(100);
-
-  // tapping the pawn cycles the seat: person → computer → nobody
-  await page.click('.seat[data-color="red"] [data-role="cycle"]');
-  await page.waitForTimeout(150);
-  check('tapping a piece hands the seat to the computer',
-    (await page.getAttribute('.seat[data-color="red"]', 'data-state')) === 'cpu');
-  await page.click('.seat[data-color="red"] [data-role="cycle"]');
-  await page.click('.seat[data-color="red"] [data-role="cycle"]');
-  await page.waitForTimeout(150);
-  check('and back round to a person again',
-    (await page.getAttribute('.seat[data-color="red"]', 'data-state')) === 'human');
 
   await page.click('[data-el="back"]');
   await page.waitForTimeout(400);
@@ -100,13 +113,16 @@ async function open(name, viewport) {
 
 /* ── actually play, four players, portrait ── */
 {
-  const { ctx, page } = await open('play', { width: 820, height: 1180 });
+  // a loaded die here too: entering the board needs a 6, and "did anything
+  // move in 45 seconds" is otherwise a coin toss the suite occasionally loses
+  const { ctx, page } = await open('play', { width: 820, height: 1180 }, alwaysRolls(6));
   await page.click('.game-card[data-id="ludo"]');
   await page.waitForTimeout(600);
 
   await page.evaluate(() => {
-    Object.assign(LUDO.seats, { red: 'human', green: 'cpu', yellow: 'cpu', blue: 'cpu' });
-    LUDO.refreshSeats();
+    LUDO.table.assign('green', 'cpu');
+    LUDO.table.assign('yellow', 'cpu');
+    LUDO.table.assign('blue', 'cpu');
     LUDO.start();
   });
   await page.waitForTimeout(1400);
@@ -150,16 +166,11 @@ async function open(name, viewport) {
 
 /* ── finishing a round: everyone gets a placing, and the score sticks ── */
 {
-  const { ctx, page } = await open('podium', { width: 820, height: 1180 });
+  const { ctx, page } = await open('podium', { width: 820, height: 1180 }, alwaysRolls(6));
   await page.click('.game-card[data-id="ludo"]');
   await page.waitForTimeout(600);
 
-  await page.evaluate(() => {
-    Object.assign(LUDO.seats, { red: 'human', green: 'human', yellow: 'off', blue: 'off' });
-    Object.assign(LUDO.names, { red: 'Chueen', green: 'Mama' });
-    LUDO.refreshSeats();
-    LUDO.start();
-  });
+  await page.evaluate(() => LUDO.start());
   await page.waitForTimeout(1000);
 
   // put Chueen one exact roll from home, so the round ends quickly
@@ -203,14 +214,14 @@ async function open(name, viewport) {
   await page.click('[data-el="changePlayers"]');
   await page.waitForTimeout(400);
   check('the win shows on her seat',
-    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')).includes('1'));
+    (await page.textContent('.seat[data-colour="red"] [data-role="tally"]')).includes('1'));
   check('there\'s a way to clear the scores', await page.isVisible('[data-el="reset"]'));
   await page.screenshot({ path: '/tmp/khel-setup-tally.png' });
 
   await page.click('[data-el="reset"]');
   await page.waitForTimeout(250);
   check('clearing the scores works',
-    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')) === ''
+    (await page.textContent('.seat[data-colour="red"] [data-role="tally"]')) === ''
     && !(await page.isVisible('[data-el="reset"]')));
 
   await ctx.close();
@@ -227,13 +238,11 @@ async function open(name, viewport) {
   await page.click('.game-card[data-id="snakes"]');
   await page.waitForTimeout(800);
   check('it opens', await page.evaluate(() => KHEL.active === 'snakes'));
-  check('the same table of people', await page.isVisible('.seat[data-color="red"] [data-role="name"]'));
-  check('it keeps its own names, apart from Ludo\'s',
-    (await page.inputValue('.seat[data-color="red"] [data-role="name"]')) === 'Chueen');
+  check('the same family sits down',
+    (await page.textContent('.seat[data-colour="red"] [data-role="who"]')) === 'Chueen');
 
   await page.evaluate(() => {
-    Object.assign(SNAKES.table.seats, { red: 'human', green: 'cpu', yellow: 'off', blue: 'off' });
-    SNAKES.table.refresh();
+    SNAKES.table.assign('green', 'cpu');
     SNAKES.start();
   });
   await page.waitForTimeout(1200);
@@ -281,7 +290,76 @@ async function open(name, viewport) {
   await page.goto(`http://localhost:${PORT}/#/ludo`);
   await page.waitForTimeout(700);
   check('the two games keep separate scores',
-    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')) === '');
+    (await page.textContent('.seat[data-colour="red"] [data-role="tally"]')) === '');
+
+  await ctx.close();
+}
+
+/* ── the family: add, rename, remove ── */
+{
+  const { ctx, page } = await open('family', { width: 820, height: 1180 });
+
+  check('the shelf shows who lives here',
+    (await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim())))
+      .join(',').replace(/\s+/g, '') === 'Chueen,Mama');
+  await page.screenshot({ path: '/tmp/khel-family.png' });
+
+  // add someone
+  await page.click('.member-add');
+  await page.waitForTimeout(250);
+  check('the add sheet opens', await page.isVisible('#member-sheet.is-active'));
+  await page.fill('#member-name', 'Papa');
+  await page.click('#member-done');
+  await page.waitForTimeout(300);
+  check('they join the family',
+    (await page.$$('.member:not(.member-add)')).length === 3);
+
+  // a typo, then the fix — the whole point of the exercise
+  await page.click('.member:nth-child(3)');
+  await page.waitForTimeout(250);
+  await page.fill('#member-name', 'Chuen');
+  await page.click('#member-done');
+  await page.waitForTimeout(250);
+
+  const idBefore = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chuen')?.id);
+  await page.click('.member:nth-child(3)');
+  await page.waitForTimeout(250);
+  await page.fill('#member-name', 'Chueen2');
+  await page.click('#member-done');
+  await page.waitForTimeout(250);
+  const idAfter = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chueen2')?.id);
+  check('fixing a spelling keeps the same person', !!idBefore && idBefore === idAfter);
+  check('and doesn\'t create a second one',
+    (await page.$$('.member:not(.member-add)')).length === 3);
+
+  // they show up in a game's picker
+  await page.click('.game-card[data-id="ludo"]');
+  await page.waitForTimeout(700);
+  await page.click('.seat[data-colour="yellow"]');
+  await page.waitForTimeout(250);
+  check('a new family member can take a seat',
+    (await page.textContent('[data-role="pick-list"]')).includes('Chueen2'));
+  await page.click('[data-role="pick-close"]');
+  await page.click('[data-el="back"]');
+  await page.waitForTimeout(400);
+
+  // remove takes two taps, on purpose
+  await page.click('.member:nth-child(3)');
+  await page.waitForTimeout(250);
+  await page.click('#member-remove');
+  await page.waitForTimeout(150);
+  check('removing asks first', await page.isVisible('#member-sheet.is-active'));
+  await page.click('#member-remove');
+  await page.waitForTimeout(300);
+  check('and then removes them',
+    (await page.$$('.member:not(.member-add)')).length === 2);
+
+  check('the family survives a reload', await (async () => {
+    await page.reload();
+    await page.waitForTimeout(500);
+    const names = await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim()));
+    return names.length === 2;
+  })());
 
   await ctx.close();
 }

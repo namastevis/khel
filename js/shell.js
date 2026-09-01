@@ -8,6 +8,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { GAMES } from './catalog.js';
+import * as family from './family.js';
 import { sfx, unlock, isMuted, toggleMute } from './audio.js';
 import { toast, hideToast } from './toast.js';
 
@@ -21,7 +22,7 @@ function buildShelf() {
       <span class="card-text">
         <span class="card-title">${g.title}</span>
         <span class="card-blurb">${g.blurb}</span>
-        <span class="card-players">${g.players}</span>
+        ${g.note ? `<span class="card-note">${g.note}</span>` : ''}
       </span>
     </button>`).join('');
 
@@ -33,6 +34,105 @@ function buildShelf() {
     });
   });
 }
+
+/* ── who lives here ────────────────────────────────────────
+   A row of people under the games: tap one to edit them, tap ＋ to
+   add someone. Wins are totalled across every game, so the row is
+   also the house scoreboard. */
+function buildFamily() {
+  const standings = family.standings();
+  const canAdd = standings.length < family.MAX_MEMBERS;
+
+  $('family-row').innerHTML = standings.map((m) => `
+    <button class="member" data-id="${m.id}" style="--tint:${m.tint}">
+      <span class="member-dot"></span>
+      <span class="member-name">${escapeHtml(m.name.trim() || 'Someone')}</span>
+      ${m.wins ? `<span class="member-wins">🏆 ${m.wins}</span>` : ''}
+    </button>`).join('')
+    + (canAdd ? '<button class="member member-add" data-add="1">＋ Add someone</button>' : '');
+
+  $('family-row').querySelectorAll('.member').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      unlock();
+      sfx.tap();
+      if (btn.dataset.add) openMember(null); else openMember(btn.dataset.id);
+    });
+  });
+}
+
+/* ── adding or editing someone ─────────────────────────────── */
+let editing = null;          // member id, or null when adding
+let chosenTint = null;
+
+function openMember(id) {
+  editing = id;
+  const member = id ? family.byId(id) : null;
+  chosenTint = member ? member.tint : null;
+
+  $('member-title').textContent = member ? 'Edit' : 'Add someone';
+  $('member-name').value = member ? member.name : '';
+  $('member-remove').hidden = !member || family.all().length <= 1;
+  $('member-note').textContent = member
+    ? ''
+    : 'They\'ll show up in every game, and keep their own score.';
+
+  $('member-tints').innerHTML = family.TINTS.map((t) => `
+    <button class="tint" data-tint="${t}" style="--tint:${t}"
+            aria-label="Colour" aria-pressed="${t === chosenTint}"></button>`).join('');
+
+  $('member-sheet').classList.add('is-active');
+  setTimeout(() => $('member-name').focus(), 60);
+}
+
+function closeMember() {
+  $('member-sheet').classList.remove('is-active');
+  editing = null;
+}
+
+function commitMember() {
+  const name = $('member-name').value.trim();
+  if (editing) {
+    if (name) family.rename(editing, name);
+    if (chosenTint) family.recolour(editing, chosenTint);
+  } else if (name) {
+    const added = family.add(name);
+    if (added && chosenTint) family.recolour(added.id, chosenTint);
+  }
+  closeMember();
+  buildFamily();
+}
+
+$('member-tints').addEventListener('click', (ev) => {
+  const swatch = ev.target.closest('.tint');
+  if (!swatch) return;
+  chosenTint = swatch.dataset.tint;
+  $('member-tints').querySelectorAll('.tint')
+    .forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.tint === chosenTint)));
+});
+
+$('member-done').addEventListener('click', commitMember);
+$('member-name').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') commitMember(); });
+$('member-sheet').addEventListener('click', (ev) => { if (ev.target === $('member-sheet')) closeMember(); });
+
+$('member-remove').addEventListener('click', () => {
+  const member = editing && family.byId(editing);
+  if (!member) return;
+  const note = $('member-note');
+  if (note.dataset.confirming !== editing) {          // one tap to ask, another to mean it
+    note.dataset.confirming = editing;
+    note.textContent = `Remove ${member.name.trim() || 'them'}? Their wins go too. Tap again to confirm.`;
+    $('member-remove').textContent = 'Yes, remove them';
+    return;
+  }
+  family.remove(editing);
+  delete note.dataset.confirming;
+  $('member-remove').textContent = 'Remove from the family';
+  closeMember();
+  buildFamily();
+});
+
+const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ── routing ───────────────────────────────────────────────── */
 let active = null;          // { id, unmount }
@@ -176,9 +276,15 @@ $('btn-install-x').addEventListener('click', () => {
 if (isIOS) showInstallBar();     // iOS gets no event, so decide straight away
 
 /* ── go ────────────────────────────────────────────────────── */
+family.load();
 buildShelf();
+buildFamily();
 paintSound();
 route();
+family.onChange(buildFamily);
+
+// ask the browser not to throw the scores away when space runs short
+navigator.storage?.persist?.().catch(() => { /* not supported everywhere */ });
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // If a worker is already running the page, a new one taking over means a
@@ -200,4 +306,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 /* a little of the state, for the automated tests */
-globalThis.KHEL = { GAMES, goHome, get active() { return active?.id ?? null; } };
+globalThis.KHEL = {
+  GAMES, goHome, family, buildFamily,
+  get active() { return active?.id ?? null; },
+};
