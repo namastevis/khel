@@ -54,10 +54,8 @@ load so nothing built up before this is lost.
 - **Auto-move** when only one piece can legally move, so nobody has to hunt for
   the one legal tap.
 - **1–4 players on one device**, in any mix of people and computer opponents.
-- **Name the players** — the setup screen is a table of people, not colours. Tap a
-  piece to swap a seat between a person, the computer and nobody; tap a name to change
-  it. Names are remembered on that device, so the board says *Chueen's turn*, and the
-  win card says *Mama wins!*. Defaults live in `DEFAULT_NAMES` in `games/ludo/index.js`.
+- **Real names on the board.** The setup screen seats people from the family, so the
+  turn card says *Chueen* and the win card says *Mamma wins!* — see **The family** above.
 - **Everyone gets a placing.** A round doesn't stop when the first player is home —
   the rest play on for 2nd, 3rd and 4th, so nobody is simply cut off. The win card is
   a podium.
@@ -88,10 +86,16 @@ npm test                  # thousands of full games of each; the rules never bre
 npm i                     # Playwright, for the two browser tests
 npm run test:browser      # the shelf, opening a game, playing it, leaving it
 npm run test:install      # the Add to Home Screen flow
+npm run shots             # screenshots of the shelf at three widths, to look at
 ```
 
-`npm run sanity` and `npm test` need nothing installed. The two browser tests need
-Playwright.
+`npm run sanity` and `npm test` need nothing installed. The browser tests need
+Playwright. If Chromium is already on the machine, `CHROME=/path/to/chrome` uses it
+instead of downloading another one.
+
+`npm run shots` isn't a test — it writes `/tmp/shots/*.png` of the shelf at phone,
+tablet and laptop widths, each with the games there are today and with six, so the
+card grid and the install bar can be eyeballed before a deploy.
 
 `test/simulate.mjs` imports the rules engine directly and asserts that no piece ever
 lands on an impossible square, that two colours never share an unsafe square, that entry
@@ -119,6 +123,7 @@ games/snakes/
 sw.js                 offline cache — lists every file
 tools/make-icons.py   redraws the app icons and the link-preview card
 tools/bump-cache.mjs  bumps the offline cache name before a deploy
+tools/ship.mjs        test, bump, check, commit, push — in one command
 ```
 
 Routing is by hash (`#/ludo`) so the whole thing stays one page: no server config, it
@@ -186,8 +191,18 @@ A plain static site, so GitHub Pages serves it straight from `main`:
 `icons/share-card.png` is what shows when the link is pasted into a chat; the Open
 Graph tags in `index.html` point at it. Rerun `npm run icons` if you change the wording.
 
-Before pushing, run `npm run release` — it bumps `CACHE` in `sw.js`, which is what tells
-an already-installed tablet that there's something new. Opening the page always
+One command does the whole thing:
+
+```bash
+npm run ship -- "what changed"
+```
+
+It runs the rules tests (and the browser tests, if Playwright is installed), bumps
+`CACHE` in `sw.js` — which is what tells an already-installed tablet there's something
+new — re-runs the sanity checks, then commits and pushes. It stops at the first failure
+and never pushes half a change. `--dry` does everything except the push.
+
+By hand, the same thing is `npm run sanity`, `npm run release`, then commit and push. Opening the page always
 goes to the network first, so a deploy shows up straight away and the cache is only the
 fallback for when there's no internet; everything else is served from the cache and
 refreshed quietly in the background. When a new worker takes over, the page reloads

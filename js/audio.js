@@ -6,7 +6,12 @@
 let ctx = null;
 let muted = false;
 
-try { muted = localStorage.getItem('ludo.muted') === '1'; } catch { /* private mode */ }
+/* 'ludo.muted' is what this was called before the app became Khel;
+   read it once so nobody's setting resets under them. */
+try {
+  const stored = localStorage.getItem('khel.muted') ?? localStorage.getItem('ludo.muted');
+  muted = stored === '1';
+} catch { /* private mode */ }
 
 function ac() {
   if (!ctx) {
@@ -25,7 +30,10 @@ export function isMuted() { return muted; }
 
 export function toggleMute() {
   muted = !muted;
-  try { localStorage.setItem('ludo.muted', muted ? '1' : '0'); } catch { /* ignore */ }
+  try {
+    localStorage.setItem('khel.muted', muted ? '1' : '0');
+    localStorage.removeItem('ludo.muted');
+  } catch { /* ignore */ }
   return muted;
 }
 

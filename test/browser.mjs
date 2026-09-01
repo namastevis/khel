@@ -9,7 +9,10 @@ import { serve } from './serve.mjs';
 
 const PORT = 8123;
 const server = await serve(PORT);
-const browser = await chromium.launch();
+// CHROME=... lets a machine with Chromium already on disk skip
+// `npx playwright install`.
+const browser = await chromium.launch(
+  process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 
 const errors = [];
 const results = [];

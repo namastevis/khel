@@ -33,6 +33,10 @@ function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
 }
 
+function drop(key) {
+  try { localStorage.removeItem(key); } catch { /* private mode */ }
+}
+
 function save() {
   write(KEY, { v: 1, members });
   listeners.forEach((fn) => fn(members));
@@ -82,6 +86,12 @@ function migrate() {
       write(`khel.${game}.seats`, seats);
     }
   }
+
+  // The old name-per-colour lists have done their job. Leaving them behind
+  // would mean migrating a second time, from stale names, if the family
+  // were ever cleared and rebuilt.
+  for (const game of ['ludo', 'snakes']) drop(`khel.${game}.names`);
+
   return true;
 }
 

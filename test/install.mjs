@@ -27,7 +27,10 @@ const asInstalledElsewhere = () => {
     : real(q);
 };
 
-const browser = await chromium.launch();
+// CHROME=... lets a machine with Chromium already on disk skip
+// `npx playwright install`.
+const browser = await chromium.launch(
+  process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const errors = [];
 const results = [];
 const check = (label, pass) => results.push([label, pass]);
@@ -55,6 +58,22 @@ const fireInstallPrompt = (page) => page.evaluate(() => {
 {
   const { ctx, page } = await open('ios', { init: asIPad, ua: IPAD });
   check('iOS: bar is offered', await page.isVisible('#install-bar'));
+
+  // The dismiss × belongs in the box's own top-right corner. Hung off the
+  // side it shoves the whole bar off-centre, which is what it used to do.
+  {
+    const box = await page.locator('#btn-install').boundingBox();
+    const x = await page.locator('#btn-install-x').boundingBox();
+    const page_w = await page.evaluate(() => document.documentElement.clientWidth);
+    const inside = x.x >= box.x && x.y >= box.y
+      && x.x + x.width <= box.x + box.width + 1
+      && x.y + x.height <= box.y + box.height + 1;
+    const topRight = x.x > box.x + box.width / 2 && x.y < box.y + box.height / 2;
+    const offCentre = Math.abs((box.x + box.width / 2) - page_w / 2);
+    check('iOS: the × sits inside the box, top right', inside && topRight);
+    check('iOS: and the box stays centred', offCentre <= 2);
+  }
+
   await page.click('#btn-install');
   await page.waitForTimeout(250);
   check('iOS: tapping it points at the Share button', await page.isVisible('#ios-overlay'));

@@ -307,6 +307,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
 /* a little of the state, for the automated tests */
 globalThis.KHEL = {
-  GAMES, goHome, family, buildFamily,
+  GAMES, goHome, family, buildFamily, buildShelf,
   get active() { return active?.id ?? null; },
 };
