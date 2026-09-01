@@ -3,7 +3,8 @@
    that was renamed. No dependencies. Run with: node test/sanity.mjs      */
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, relative, resolve, extname } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { join, dirname, resolve, extname } from 'node:path';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -133,6 +134,38 @@ const files = shipped();
     });
   }
   ok('copy never names who it was made for');
+}
+
+/* ── 7. shipping a change means bumping the cache ──────────────────
+   Without this, an installed tablet can load the new page against the
+   old JavaScript. It's the one deploy step a human has to remember, so
+   it shouldn't be left to a human. */
+{
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  const cacheIn = (rev) => (git('show', `${rev}:sw.js`).match(/const CACHE = '([^']+)'/) || [])[1];
+
+  try {
+    // compare against what's actually deployed, if we know it
+    let baseline = 'HEAD';
+    try { git('rev-parse', '--verify', 'origin/main'); baseline = 'origin/main'; } catch { /* never pushed */ }
+
+    const changed = git('diff', '--name-only', baseline, '--')
+      .split('\n')
+      .filter(Boolean)
+      .filter((f) => !f.startsWith('test/') && !f.startsWith('tools/') && f !== 'README.md');
+
+    if (!changed.length) {
+      ok(`nothing shipped has changed since ${baseline}`);
+    } else if (cacheIn(baseline) === cacheIn('HEAD') && cacheIn('HEAD')) {
+      fail(`${changed.length} shipped file(s) changed since ${baseline}, but CACHE is still `
+        + `"${cacheIn(baseline)}" — run: npm run release`);
+    } else {
+      ok(`cache bumped for this deploy: ${cacheIn(baseline)} → ${cacheIn('HEAD')}`);
+    }
+  } catch {
+    console.log('  ·  not a git checkout — skipping the deploy check');
+  }
 }
 
 console.log(problems === 0 ? '\n✅ everything checks out' : `\n❌ ${problems} problems`);
