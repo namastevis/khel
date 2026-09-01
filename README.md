@@ -9,16 +9,17 @@ No ads, no tracking, no in-app purchases, no accounts, no network calls at all.
 Installs to the home screen on an iPad, an Android tablet, or a laptop, and works
 completely offline.
 
-**Play:** https://namastevis.github.io/khel/
+**Play:** https://namastevis.in/khel/
 
 ## On the shelf
 
 | Game | | |
 |---|---|---|
 | **Ludo** | Race your four pieces home | 2–4 round one tablet, or one vs the computer |
+| **Snakes & Ladders** | Climb the ladders, dodge the snakes | 2–4 round one tablet, or one vs the computer |
 
-More to come. Snakes & Ladders is the natural next one — it reuses the dice, the
-square-by-square hop, and the turn loop almost wholesale.
+Both games share the shell's setup screen, so the table of people, the names and the
+running score work the same way in each — and each keeps its own scores.
 
 ## Ludo
 
@@ -57,16 +58,22 @@ both need `http://`.)
 ## Tests
 
 ```bash
-npm test                  # 3000 full games of Ludo; checks the rules never break
+npm run sanity            # nothing missing from the offline list, no dead imports
+npm test                  # thousands of full games of each; the rules never break
 npm i                     # Playwright, for the two browser tests
 npm run test:browser      # the shelf, opening a game, playing it, leaving it
 npm run test:install      # the Add to Home Screen flow
 ```
 
-`test/simulate.mjs` has no dependencies — it imports the rules engine directly and
-asserts that no piece ever lands on an impossible square, that two colours never share
-an unsafe square, that entry is only offered on a 6, and that the winner really does
-have all four pieces home.
+`npm run sanity` and `npm test` need nothing installed. The two browser tests need
+Playwright.
+
+`test/simulate.mjs` imports the rules engine directly and asserts that no piece ever
+lands on an impossible square, that two colours never share an unsafe square, that entry
+is only offered on a 6, and that the winner really does have all four pieces home.
+`test/simulate-snakes.mjs` does the same for the other board, and additionally checks the
+board itself: every ladder goes up, every snake goes down, no jump lands on another jump,
+and square *n* is always next to square *n−1*.
 
 ## How it fits together
 
@@ -75,11 +82,17 @@ index.html            the shelf, and the empty host a game mounts into
 app.css               the shell: colours, buttons, overlays, toast, cards
 js/shell.js           routing, the install banner, sound, service worker
 js/catalog.js         what's on the shelf — one row per game
+js/table.js           "who's playing" — seats, names, the running score
+js/pawn.js            the playing piece, on canvas and as SVG
+js/dice.js            one fair roll, and the pips that show it
 js/audio.js           sounds, generated in the browser; no audio files
+js/confetti.js        paper for the winner
 js/toast.js           the shared message at the top of the screen
 games/ludo/           one folder per game
+games/snakes/
 sw.js                 offline cache — lists every file
 tools/make-icons.py   redraws the app icons and the link-preview card
+tools/bump-cache.mjs  bumps the offline cache name before a deploy
 ```
 
 Routing is by hash (`#/ludo`) so the whole thing stays one page: no server config, it
@@ -97,6 +110,17 @@ works offline, and the tablet's back gesture does the sane thing.
 
 The shell imports games lazily, so a new game costs the shelf nothing until it is
 opened.
+
+## Snakes & Ladders
+
+The classic board, with two changes. The ladder at square 1 starts at 2 instead, since
+everyone begins standing on 1. And the 98 → 78 snake is gone: losing on square 98 is
+funny exactly once, and this is not the audience for it. Reaching 100 wins whether or
+not the roll is exact, because needing the precise number strands a small player on 97
+for five turns, which is where a game like this loses them.
+
+A round takes about 80 rolls, against roughly 300 for Ludo — so it's the one to reach
+for when there isn't much time.
 
 ### How Ludo stores a position
 
@@ -136,5 +160,9 @@ A plain static site, so GitHub Pages serves it straight from `main`:
 `icons/share-card.png` is what shows when the link is pasted into a chat; the Open
 Graph tags in `index.html` point at it. Rerun `npm run icons` if you change the wording.
 
-After any change, bump `CACHE` in `sw.js` (`khel-v1` → `v2`, …) or tablets that already
-installed the app will keep serving the version they have.
+Before pushing, run `npm run release` — it bumps `CACHE` in `sw.js`, which is what tells
+an already-installed tablet that there's something new. Opening the page always
+goes to the network first, so a deploy shows up straight away and the cache is only the
+fallback for when there's no internet; everything else is served from the cache and
+refreshed quietly in the background. When a new worker takes over, the page reloads
+itself once so nobody is left looking at last week's copy.

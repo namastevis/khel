@@ -1,47 +1,42 @@
 /* ═══════════════════════════════════════════════════════════════
-   game.js — the controller: turn flow, animation, input, HUD.
+   game.js — turn flow, animation, HUD.
 
-   Everything is scoped to the element the shell mounted us into, so
-   nothing here touches the rest of the page and destroy() really
-   does leave no trace.
+   There are no decisions to make in Snakes & Ladders, so there is no
+   opponent to write: everybody rolls, and the board does the rest.
+   What the screen owes the player is a clear view of the counting.
    ═══════════════════════════════════════════════════════════════ */
 
-import { COLORS, HOME_REL, cellOf } from './config.js';
-import { createGame, current, legalMoves, pathOf, applyMove, nextTurn, sameTurn, isDone } from './rules.js';
-import { chooseMove } from './ai.js';
-import { createRenderer, confettiBurst } from './render.js';
+import { COLORS, cellOf } from './config.js';
+import { createGame, current, applyRoll, nextTurn, sameTurn, isDone } from './rules.js';
+import { createRenderer } from './render.js';
 import { rollDie, drawDie } from '../../js/dice.js';
 import { sfx, unlock } from '../../js/audio.js';
 import { toast } from '../../js/toast.js';
+import { confetti } from '../../js/confetti.js';
 
 const ORDINAL = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth' };
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '🎗️' };
 
-/**
- * @param root   the game's own element
- * @param el     name → element lookup, from index.js
- * @param hooks  { onGameOver(orderOfColours, playersByColour) }
- */
 export function createController(root, el, hooks = {}) {
   const canvas = el('board');
   const renderer = createRenderer(canvas);
 
   let g = null;
-  let gen = 0;                 // bumped on quit/restart to cancel pending timers
-  let moving = null;           // { player, token, cell:[x,y] }
-  let highlight = [];
+  let gen = 0;
+  let moving = null;
   let stopConfetti = null;
   let running = false;
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const alive = (my) => my === gen;
-  const setHint = (text) => { el('hint').textContent = text; };
+  const setHint = (t) => { el('hint').textContent = t; };
 
   function updateHUD() {
     if (!g) return;
     const me = current(g);
     el('turnDot').style.background = COLORS[me.color].main;
     el('turnName').textContent = me.label;
+    el('turnSquare').textContent = `on ${me.pos}`;
   }
 
   function layout() {
@@ -49,34 +44,30 @@ export function createController(root, el, hooks = {}) {
     const panel = root.querySelector('.panel');
     if (!stage || !stage.clientWidth) return;
     const landscape = window.innerWidth > window.innerHeight;
-    const gapAndPad = 44;
-    const availW = stage.clientWidth - (landscape ? panel.offsetWidth + gapAndPad : gapAndPad);
-    const availH = stage.clientHeight - (landscape ? gapAndPad : panel.offsetHeight + gapAndPad);
+    const pad = 44;
+    const availW = stage.clientWidth - (landscape ? panel.offsetWidth + pad : pad);
+    const availH = stage.clientHeight - (landscape ? pad : panel.offsetHeight + pad);
     renderer.resize(Math.min(availW, availH, 760));
   }
 
-  function frame(t) {
+  function frame() {
     if (!running) return;
-    if (g) renderer.draw(g, { moving, highlight, time: t });
+    if (g) renderer.draw(g, { moving });
     requestAnimationFrame(frame);
   }
 
-  /* ── turn flow ─────────────────────────────────────────── */
-
+  /* ── turns ─────────────────────────────────────────────── */
   async function beginTurn(my) {
-    // g.winner is set the moment someone is home, but the round runs on
-    // for the places below it — so 'over' is what ends the turn loop.
     if (!alive(my) || !g || g.phase === 'over') return;
     updateHUD();
-    highlight = [];
     drawDie(el('diceFace'), null);
     const me = current(g);
 
     if (me.kind === 'cpu') {
       el('dice').disabled = true;
       el('dice').classList.remove('is-ready');
-      setHint(`${me.label} is thinking…`);
-      await sleep(620);
+      setHint(`${me.label} is rolling…`);
+      await sleep(600);
       if (!alive(my)) return;
       doRoll(my);
     } else {
@@ -94,8 +85,11 @@ export function createController(root, el, hooks = {}) {
     el('dice').classList.add('is-rolling');
     sfx.roll();
 
-    // tumble through a few faces before settling
-    for (let i = 0; i < 6; i++) { drawDie(el('diceFace'), 1 + ((Math.random() * 6) | 0)); await sleep(70); if (!alive(my)) return; }
+    for (let i = 0; i < 6; i++) {
+      drawDie(el('diceFace'), 1 + ((Math.random() * 6) | 0));
+      await sleep(70);
+      if (!alive(my)) return;
+    }
 
     const d = rollDie();
     g.dice = d;
@@ -103,10 +97,8 @@ export function createController(root, el, hooks = {}) {
     drawDie(el('diceFace'), d);
     el('dice').classList.remove('is-rolling');
     sfx.land();
-    await sleep(320);
+    await sleep(300);
     if (!alive(my)) return;
-
-    const me = current(g);
 
     if (g.sixStreak === 3) {
       toast('Three sixes! Turn passes 🎲');
@@ -117,61 +109,47 @@ export function createController(root, el, hooks = {}) {
       return beginTurn(my);
     }
 
-    const moves = legalMoves(g, d);
-
-    if (moves.length === 0) {
-      setHint(d === 6 ? 'Nothing to move!' : 'No move this time');
-      toast(`${me.label}: no move`);
-      sfx.skip();
-      await sleep(1000);
-      if (!alive(my)) return;
-      nextTurn(g);
-      return beginTurn(my);
-    }
-
-    if (moves.length === 1) {
-      setHint('Off it goes!');
-      await sleep(260);
-      if (!alive(my)) return;
-      return performMove(my, moves[0]);
-    }
-
-    if (me.kind === 'cpu') {
-      await sleep(480);
-      if (!alive(my)) return;
-      return performMove(my, chooseMove(g, moves));
-    }
-
-    g.phase = 'pick';
-    highlight = moves.map((m) => m.token);
-    setHint('Tap a glowing piece');
+    return walkIt(my, d);
   }
 
-  async function performMove(my, move) {
-    if (!alive(my) || !g) return;
+  async function walkIt(my, dice) {
     g.phase = 'moving';
-    highlight = [];
-    const me = current(g);
     const pi = g.turn;
+    const from = current(g).pos;
+    const { events, walk, jump, extraTurn, over } = applyRoll(g, dice);
 
-    // hop from cell to cell so the counting is visible
-    const steps = pathOf(move);
-    let fromCell = cellOf(me.color, move.from, move.isEntry ? move.token : 0);
-    for (const rel of steps) {
-      const toCell = cellOf(me.color, rel, rel === HOME_REL ? move.token : 0);
+    // one square at a time, counting out loud
+    let prev = cellOf(from);
+    for (const square of walk) {
+      const next = cellOf(square);
       sfx.hop();
-      await tween(my, pi, move.token, fromCell, toCell, steps.length > 4 ? 105 : 145);
+      setHint(String(square));
+      await tween(my, pi, prev, next, walk.length > 4 ? 115 : 150);
       if (!alive(my)) return;
-      fromCell = toCell;
+      prev = next;
     }
-    moving = null;
 
-    const { events, extraTurn, over } = applyMove(g, move);
+    if (jump) {
+      await sleep(320);
+      if (!alive(my)) return;
+      const to = cellOf(jump.to);
+      if (jump.kind === 'ladder') {
+        sfx.home();
+        setHint(`Up to ${jump.to}!`);
+        toast(`${current(g).label} climbs to ${jump.to}! 🪜`, 1800);
+      } else {
+        sfx.capture();
+        setHint(`Down to ${jump.to}`);
+        toast(`Oh no — ${current(g).label} slides to ${jump.to} 🐍`, 1800);
+      }
+      await tween(my, pi, prev, to, 620, jump.kind === 'snake');
+      if (!alive(my)) return;
+    }
+
+    moving = null;
+    updateHUD();
 
     for (const e of events) {
-      if (e.type === 'enter') sfx.enter();
-      if (e.type === 'capture') { sfx.capture(); toast(`${e.by} sent ${e.victim} home!`, 1700); }
-      if (e.type === 'home' && !isDone(current(g))) { sfx.home(); toast('A piece is home! 🏠', 1500); }
       if (e.type === 'finish') {
         sfx.win();
         toast(e.place === 1 ? `${e.label} is home first! 🏆` : `${e.label} finishes ${ORDINAL[e.place]}!`, 2200);
@@ -180,22 +158,21 @@ export function createController(root, el, hooks = {}) {
 
     if (over) {
       setHint('');
-      await sleep(events.some((e) => e.type === 'finish') ? 1500 : 500);
+      await sleep(1400);
       if (!alive(my)) return;
       showWin(g.finished);
       return;
     }
 
-    // a player who has just finished doesn't get another go
+    await sleep(300);
+    if (!alive(my)) return;
+
     if (isDone(current(g))) {
-      await sleep(900);
+      await sleep(700);
       if (!alive(my)) return;
       nextTurn(g);
       return beginTurn(my);
     }
-
-    await sleep(280);
-    if (!alive(my)) return;
 
     if (extraTurn) {
       toast('Another turn! ✨', 1100);
@@ -206,18 +183,19 @@ export function createController(root, el, hooks = {}) {
     return beginTurn(my);
   }
 
-  function tween(my, playerIdx, token, from, to, ms) {
+  function tween(my, playerIdx, from, to, ms, slither = false) {
     return new Promise((resolve) => {
       const t0 = performance.now();
       (function step(t) {
         if (!alive(my)) return resolve();
         const k = Math.min(1, (t - t0) / ms);
-        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // ease in-out
-        const hop = Math.sin(Math.PI * k) * 0.22;                          // little arc
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        // a hop between squares; a wobble when a snake is doing the moving
+        const lift = slither ? Math.sin(k * Math.PI * 3) * 0.12 : Math.sin(Math.PI * k) * 0.22;
         moving = {
           player: playerIdx,
-          token,
-          cell: [from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e - hop],
+          cell: [from[0] + (to[0] - from[0]) * e + (slither ? lift : 0),
+            from[1] + (to[1] - from[1]) * e - (slither ? 0 : lift)],
         };
         if (k < 1) requestAnimationFrame(step); else resolve();
       })(performance.now());
@@ -230,8 +208,6 @@ export function createController(root, el, hooks = {}) {
 
     el('winTitle').textContent = `${champ.label} wins!`;
     el('winSub').textContent = order.length > 2 ? 'Here\'s how everyone finished' : 'Well played, both of you';
-
-    // everybody gets a placing — nobody is simply "not the winner"
     el('podium').innerHTML = order.map((c, i) => {
       const p = byColour(c);
       return `<li class="podium-row" style="--c:${COLORS[c].main}">
@@ -241,48 +217,34 @@ export function createController(root, el, hooks = {}) {
       </li>`;
     }).join('');
 
-    hooks.onGameOver?.(order, g.players);
-
+    hooks.onGameOver?.(order);
     el('winOverlay').classList.add('is-active');
-    stopConfetti = confettiBurst(el('confetti'));
+    stopConfetti = confetti(el('confetti'));
   }
 
   /* ── input ─────────────────────────────────────────────── */
-  const onPointerDown = (ev) => {
-    if (!g || g.phase !== 'pick') return;
-    const ti = renderer.tokenAt(g, ev.clientX, ev.clientY);
-    if (ti === null || !highlight.includes(ti)) return;
-    const move = legalMoves(g, g.dice).find((m) => m.token === ti);
-    if (!move) return;
-    sfx.tap();
-    performMove(gen, move);
-  };
-
   const onDiceClick = () => {
     unlock();
     if (g && g.phase === 'roll' && current(g).kind === 'human') doRoll(gen);
   };
-
   const onOrientation = () => setTimeout(layout, 250);
 
-  canvas.addEventListener('pointerdown', onPointerDown);
   el('dice').addEventListener('click', onDiceClick);
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', onOrientation);
   window.visualViewport?.addEventListener('resize', layout);
 
-  /* ── public API ────────────────────────────────────────── */
   return {
     start(seats, names) {
       gen++;
       stopConfetti?.(); stopConfetti = null;
       el('winOverlay').classList.remove('is-active');
       g = createGame(seats, names);
-      moving = null; highlight = [];
+      moving = null;
       running = true;
       requestAnimationFrame(frame);
       layout();
-      setTimeout(layout, 60);          // after the screen has actually been shown
+      setTimeout(layout, 60);
       drawDie(el('diceFace'), null);
       beginTurn(gen);
     },
@@ -294,7 +256,6 @@ export function createController(root, el, hooks = {}) {
     },
     destroy() {
       this.stop();
-      canvas.removeEventListener('pointerdown', onPointerDown);
       el('dice').removeEventListener('click', onDiceClick);
       window.removeEventListener('resize', layout);
       window.removeEventListener('orientationchange', onOrientation);
@@ -302,6 +263,5 @@ export function createController(root, el, hooks = {}) {
     },
     layout,
     get state() { return g; },
-    get pickable() { return highlight; },
   };
 }

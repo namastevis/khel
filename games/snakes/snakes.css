@@ -1,0 +1,14 @@
+/* ═══════════════════════════════════════════════
+   Snakes & Ladders — its own colour, and the square
+   number that rides along in the turn card.
+   ═══════════════════════════════════════════════ */
+
+.snakes { height: 100%; }
+.snakes .game-name { color: var(--green); font-size: clamp(26px, 7vmin, 46px); }
+
+.turn-text { display: flex; flex-direction: column; line-height: 1.15; }
+.turn-square {
+  font-size: clamp(11px, 2.5vmin, 14px);
+  font-weight: 600;
+  color: var(--ink-soft);
+}

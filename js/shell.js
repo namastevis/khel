@@ -181,6 +181,19 @@ paintSound();
 route();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // If a worker is already running the page, a new one taking over means a
+  // new version has landed — reload once so nobody is left on last week's
+  // copy. (Only when there was a controller to begin with, or the very first
+  // visit would reload itself for no reason.)
+  if (navigator.serviceWorker.controller) {
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
+    });
+  }
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ });
   });

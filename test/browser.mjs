@@ -190,7 +190,8 @@ async function open(name, viewport) {
     await page.waitForTimeout(90);
   }
 
-  await page.waitForTimeout(1400);
+  // wait for the podium itself rather than a hopeful sleep
+  await page.waitForSelector('.podium-row', { timeout: 15000 }).catch(() => {});
   check('the round ended', await page.evaluate(() => LUDO.game.state?.phase === 'over'));
   check('everyone got a placing', (await page.$$('.podium-row')).length === 2);
   check('Chueen is on top of the podium',
@@ -211,6 +212,76 @@ async function open(name, viewport) {
   check('clearing the scores works',
     (await page.textContent('.seat[data-color="red"] [data-role="tally"]')) === ''
     && !(await page.isVisible('[data-el="reset"]')));
+
+  await ctx.close();
+}
+
+/* ── the second game ── */
+{
+  const { ctx, page } = await open('snakes', { width: 820, height: 1180 });
+
+  check('the shelf has both games', (await page.$$('.game-card')).length === 2);
+  check('Snakes & Ladders is on the shelf', await page.isVisible('.game-card[data-id="snakes"]'));
+  await page.screenshot({ path: '/tmp/khel-shelf-two.png' });
+
+  await page.click('.game-card[data-id="snakes"]');
+  await page.waitForTimeout(800);
+  check('it opens', await page.evaluate(() => KHEL.active === 'snakes'));
+  check('the same table of people', await page.isVisible('.seat[data-color="red"] [data-role="name"]'));
+  check('it keeps its own names, apart from Ludo\'s',
+    (await page.inputValue('.seat[data-color="red"] [data-role="name"]')) === 'Chueen');
+
+  await page.evaluate(() => {
+    Object.assign(SNAKES.table.seats, { red: 'human', green: 'cpu', yellow: 'off', blue: 'off' });
+    SNAKES.table.refresh();
+    SNAKES.start();
+  });
+  await page.waitForTimeout(1200);
+  check('the board is up', await page.isVisible('[data-el="board"]'));
+  check('everyone starts on square 1',
+    await page.evaluate(() => SNAKES.game.state.players.every((p) => p.pos === 1)));
+  await page.screenshot({ path: '/tmp/khel-snakes.png' });
+
+  // walk a few real turns so the board, ladders and snakes all get exercised
+  for (let i = 0; i < 14; i++) {
+    if (await page.evaluate(() => SNAKES.game.state?.phase === 'roll'
+      && SNAKES.game.state.players[SNAKES.game.state.turn].kind === 'human')) {
+      await page.click('[data-el="dice"]', { force: true }).catch(() => {});
+    }
+    await page.waitForTimeout(500);
+  }
+  check('pieces climbed the board',
+    await page.evaluate(() => SNAKES.game.state.players.some((p) => p.pos > 1)));
+  await page.screenshot({ path: '/tmp/khel-snakes-play.png' });
+
+  // put someone on the doorstep so the round finishes
+  await page.evaluate(() => { SNAKES.game.state.players[0].pos = 99; });
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    if (await page.evaluate(() => SNAKES.game.state?.phase === 'over')) break;
+    if (await page.evaluate(() => SNAKES.game.state?.phase === 'roll'
+      && SNAKES.game.state.players[SNAKES.game.state.turn].kind === 'human')) {
+      await page.click('[data-el="dice"]', { force: true }).catch(() => {});
+    }
+    await page.waitForTimeout(220);
+  }
+  await page.waitForSelector('.podium-row', { timeout: 15000 }).catch(() => {});
+  check('the round finishes', await page.evaluate(() => SNAKES.game.state?.phase === 'over'));
+  check('with a podium', (await page.$$('.podium-row')).length === 2);
+  check('and its own score', (await page.textContent('[data-el="tallyRow"]')).includes('Chueen 1'));
+  await page.screenshot({ path: '/tmp/khel-snakes-win.png' });
+
+  await page.click('[data-el="changePlayers"]');
+  await page.waitForTimeout(400);
+  await page.click('[data-el="back"]');
+  await page.waitForTimeout(500);
+  check('leaving cleans up', await page.evaluate(() => KHEL.active === null && typeof SNAKES === 'undefined'));
+
+  // and Ludo's scores are untouched by any of it
+  await page.goto(`http://localhost:${PORT}/#/ludo`);
+  await page.waitForTimeout(700);
+  check('the two games keep separate scores',
+    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')) === '');
 
   await ctx.close();
 }

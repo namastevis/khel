@@ -6,6 +6,7 @@ import {
   GRID, COLORS, TRACK, START_INDEX, STAR_INDICES,
   HOME_COLUMN, YARD_ORIGIN, HOME_REL, cellOf,
 } from './config.js';
+import { drawPawn } from '../../js/pawn.js';
 
 const BOARD_BG = '#FFFDF6';
 const CELL_BG  = '#FFFFFF';
@@ -164,7 +165,7 @@ export function createRenderer(canvas) {
     }
 
     for (const s of spots) {
-      const glow = s.pi === g.turn && highlight.includes(s.ti) && !g.winner;
+      const glow = s.pi === g.turn && highlight.includes(s.ti) && g.phase !== 'over';
       pawn(px(s.gx), px(s.gy), px(s.small ? 0.30 : 0.36), s.color, glow, time);
     }
 
@@ -175,41 +176,8 @@ export function createRenderer(canvas) {
   }
 
   function pawn(x, y, r, colorKey, glow, time, lifted = false) {
-    const c = COLORS[colorKey];
-
-    if (glow) {
-      const t = (Math.sin(time / 260) + 1) / 2;
-      ctx.beginPath();
-      ctx.arc(x, y - r * 0.1, r * (1.35 + t * 0.22), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 205, 60, ${0.20 + t * 0.28})`;
-      ctx.fill();
-    }
-
-    // ground shadow
-    ctx.beginPath();
-    ctx.ellipse(x, y + r * 0.72, r * (lifted ? 0.65 : 0.8), r * 0.26, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(67,51,31,.20)';
-    ctx.fill();
-
-    const lift = lifted ? -r * 0.28 : 0;
-
-    // body
-    ctx.beginPath();
-    ctx.arc(x, y + r * 0.24 + lift, r * 0.66, 0, Math.PI * 2);
-    ctx.fillStyle = c.main; ctx.fill();
-    ctx.lineWidth = r * 0.16; ctx.strokeStyle = c.dark; ctx.stroke();
-
-    // head
-    ctx.beginPath();
-    ctx.arc(x, y - r * 0.46 + lift, r * 0.44, 0, Math.PI * 2);
-    ctx.fillStyle = c.main; ctx.fill();
-    ctx.lineWidth = r * 0.16; ctx.strokeStyle = c.dark; ctx.stroke();
-
-    // glossy dot
-    ctx.beginPath();
-    ctx.ellipse(x - r * 0.16, y - r * 0.58 + lift, r * 0.15, r * 0.11, -0.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.fill();
+    const pulse = glow ? (Math.sin(time / 260) + 1) / 2 : 0;
+    drawPawn(ctx, x, y, r, COLORS[colorKey], { glow: pulse, lifted });
   }
 
   /* ── hit testing ──────────────────────────────────────────── */
@@ -259,44 +227,4 @@ export function createRenderer(canvas) {
   return { resize, draw, tokenAt, get size() { return size; } };
 }
 
-/* ═══════════════ confetti for the winner ═══════════════ */
-export function confettiBurst(canvas) {
-  const ctx = canvas.getContext('2d');
-  const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
-  const W = canvas.clientWidth || 320, H = canvas.clientHeight || 480;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const palette = [COLORS.red.main, COLORS.green.main, COLORS.yellow.main, COLORS.blue.main, '#FFFDF6'];
-  const bits = Array.from({ length: 130 }, () => ({
-    x: Math.random() * W,
-    y: -20 - Math.random() * H * 0.7,
-    vx: (Math.random() - 0.5) * 1.6,
-    vy: 1.6 + Math.random() * 2.6,
-    w: 6 + Math.random() * 8,
-    h: 8 + Math.random() * 10,
-    a: Math.random() * Math.PI,
-    va: (Math.random() - 0.5) * 0.22,
-    c: palette[(Math.random() * palette.length) | 0],
-  }));
-
-  let stop = false;
-  const t0 = performance.now();
-  (function frame(t) {
-    if (stop) return;
-    ctx.clearRect(0, 0, W, H);
-    for (const b of bits) {
-      b.x += b.vx; b.y += b.vy; b.a += b.va;
-      if (b.y > H + 30) { b.y = -20; b.x = Math.random() * W; }
-      ctx.save();
-      ctx.translate(b.x, b.y); ctx.rotate(b.a);
-      ctx.fillStyle = b.c;
-      ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
-      ctx.restore();
-    }
-    if (t - t0 < 9000) requestAnimationFrame(frame);
-    else ctx.clearRect(0, 0, W, H);
-  })(t0);
-
-  return () => { stop = true; ctx.clearRect(0, 0, W, H); };
-}
+export { confetti as confettiBurst } from '../../js/confetti.js';

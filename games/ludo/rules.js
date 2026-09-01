@@ -42,14 +42,7 @@ export function createGame(seats, names = {}) {
 
 export const current = (g) => g.players[g.turn];
 
-export function rollDie() {
-  if (globalThis.crypto?.getRandomValues) {
-    const buf = new Uint8Array(1);
-    do { crypto.getRandomValues(buf); } while (buf[0] > 251);   // avoid modulo bias
-    return (buf[0] % 6) + 1;
-  }
-  return Math.floor(Math.random() * 6) + 1;
-}
+export { rollDie } from '../../js/dice.js';
 
 /** Every legal move for the current player with the given die. */
 export function legalMoves(g, dice) {

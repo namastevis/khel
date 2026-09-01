@@ -1,25 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════
-   games/ludo/index.js — Ludo's entry point.
-
-   The shell hands us a host element and a way back to the shelf.
-   Everything this game needs — markup, listeners, timers — is
-   created here and torn down again in unmount().
+   games/snakes/index.js — Snakes & Ladders' entry point.
    ═══════════════════════════════════════════════════════════════ */
 
-import { ORDER, COLORS, CPU_NAMES, cellOf } from './config.js';
+import { ORDER, COLORS, CPU_NAMES } from './config.js';
 import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock } from '../../js/audio.js';
 
-export const meta = { id: 'ludo', title: 'Ludo' };
+export const meta = { id: 'snakes', title: 'Snakes & Ladders' };
+
+const DEFAULT_NAMES = { red: 'Chueen', green: 'Mama', yellow: 'Papa', blue: 'Dada' };
+const STARTING_SEATS = { red: 'human', green: 'human', yellow: 'off', blue: 'off' };
 
 const TEMPLATE = `
-<div class="ludo">
+<div class="snakes">
 
-  <!-- ── who is playing ── -->
   <section class="game-screen is-active" data-screen="setup">
     <div class="setup-wrap">
-      <h2 class="game-name">Ludo</h2>
+      <h2 class="game-name">Snakes &amp; Ladders</h2>
       <p class="setup-who">Who's playing?</p>
       <p class="setup-hint">Tap a piece to swap between a person, the computer, and nobody &middot; tap a name to change it</p>
 
@@ -36,17 +34,19 @@ const TEMPLATE = `
     </div>
   </section>
 
-  <!-- ── the board ── -->
   <section class="game-screen" data-screen="board">
     <div class="stage">
       <div class="board-holder">
-        <canvas class="board" data-el="board" aria-label="Ludo board"></canvas>
+        <canvas class="board" data-el="board" aria-label="Snakes and ladders board"></canvas>
       </div>
 
       <aside class="panel">
         <div class="turn-card">
           <span class="turn-dot" data-el="turnDot"></span>
-          <span class="turn-name" data-el="turnName">Red</span>
+          <span class="turn-text">
+            <span class="turn-name" data-el="turnName">Red</span>
+            <span class="turn-square" data-el="turnSquare">on 1</span>
+          </span>
         </div>
 
         <button class="dice" data-el="dice" aria-label="Roll the dice">
@@ -62,7 +62,6 @@ const TEMPLATE = `
     </div>
   </section>
 
-  <!-- ── someone won ── -->
   <div class="overlay" data-el="winOverlay">
     <canvas class="confetti" data-el="confetti"></canvas>
     <div class="win-card">
@@ -76,29 +75,21 @@ const TEMPLATE = `
     </div>
   </div>
 
-  <!-- ── how to play ── -->
   <div class="overlay" data-el="helpOverlay">
     <div class="help-card">
       <h2>How to play</h2>
       <ol>
-        <li><b>Tap the dice</b> when it is your turn.</li>
-        <li>You need a <b>6</b> to bring a piece out of its house.</li>
-        <li>Tap a <b>glowing piece</b> to move it. If only one piece can move, it moves by itself.</li>
-        <li>Land on someone else's piece and it goes <b>back home</b> &mdash; unless it is standing on a <b>star</b>.</li>
-        <li>Roll a <b>6</b>, send someone home, or get a piece home &mdash; you get <b>another turn</b>.</li>
-        <li>Get all <b>4 pieces</b> to the middle to win. You need the exact number to finish!</li>
+        <li><b>Tap the dice</b> and your piece walks that many squares.</li>
+        <li>Land at the bottom of a <b>ladder</b> and you climb all the way up. 🪜</li>
+        <li>Land on a <b>snake's head</b> and you slide back down to its tail. 🐍</li>
+        <li>Roll a <b>6</b> and you go again.</li>
+        <li>First to <b>square 100</b> wins &mdash; and you don't need the exact number.</li>
       </ol>
       <button class="big-btn" data-el="helpClose">Got it</button>
     </div>
   </div>
 
 </div>`;
-
-/* Who's usually round the table. Every one of these is editable on the
-   setup screen, and the edits are remembered on that device — this is
-   only what a fresh tablet starts with. */
-const DEFAULT_NAMES = { red: 'Chueen', green: 'Mama', yellow: 'Papa', blue: 'Dada' };
-const STARTING_SEATS = { red: 'human', green: 'human', yellow: 'off', blue: 'off' };
 
 export function mount(host, shell) {
   host.innerHTML = TEMPLATE;
@@ -110,7 +101,7 @@ export function mount(host, shell) {
     seatsEl: el('seats'),
     playEl: el('play'),
     resetEl: el('reset'),
-    prefix: 'khel.ludo',
+    prefix: 'khel.snakes',
     order: ORDER,
     colors: COLORS,
     cpuNames: CPU_NAMES,
@@ -118,7 +109,6 @@ export function mount(host, shell) {
     startingSeats: STARTING_SEATS,
   });
 
-  /* ── screens ── */
   const showSetup = () => {
     screen('setup').classList.add('is-active');
     screen('board').classList.remove('is-active');
@@ -138,13 +128,10 @@ export function mount(host, shell) {
     game.start({ ...table.seats }, { ...table.names });
   }
 
-  /* ── wiring ── */
   const on = (name, ev, fn) => el(name).addEventListener(ev, fn);
 
   on('play', 'click', start);
-
   on('quick', 'click', () => { table.soloVsComputer(); start(); });
-
   on('how', 'click', () => el('helpOverlay').classList.add('is-active'));
   on('helpClose', 'click', () => el('helpOverlay').classList.remove('is-active'));
   on('back', 'click', () => shell.goHome());
@@ -169,15 +156,10 @@ export function mount(host, shell) {
   table.refresh();
   showSetup();
 
-  /* for the automated tests */
-  globalThis.LUDO = {
-    game, start, geom: { cellOf },
-    seats: table.seats, names: table.names,
-    refreshSeats: table.refresh,
-  };
+  globalThis.SNAKES = { game, table, start };
 
   return function unmount() {
     game.destroy();
-    delete globalThis.LUDO;
+    delete globalThis.SNAKES;
   };
 }
