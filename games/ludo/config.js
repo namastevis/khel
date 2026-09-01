@@ -27,10 +27,13 @@ export const COLORS = {
   blue:   { main: '#4A9BE8', dark: '#2E76B8', light: '#D3E8FB', name: 'Blue' },
 };
 
-/* Friendlier than "Player 2" when a seat is taken by the computer */
+/* The computer's players. An animal a four-year-old can name, in the
+   colour of the piece it's playing — easier to root against than a robot. */
 export const CPU_NAMES = {
-  red: 'Robo Red', green: 'Go-Go Green', yellow: 'Sunny Yellow', blue: 'Bubbly Blue',
+  red: 'Red Panda', green: 'Green Frog', yellow: 'Yellow Duck', blue: 'Blue Whale',
 };
+
+export const CPU_FACES = { red: '🐼', green: '🐸', yellow: '🦆', blue: '🐳' };
 
 /* ── the 52-cell loop, clockwise, starting at Red's start square ── */
 export const TRACK = [

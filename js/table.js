@@ -19,10 +19,11 @@ import { sfx, unlock } from './audio.js';
  * @param opts.game      'ludo' — used for this game's own seats and scores
  * @param opts.order     colour keys, in turn order
  * @param opts.colors    { red: { main, dark, name }, … }
- * @param opts.cpuNames  { red: 'Robo Red', … }
+ * @param opts.cpuNames  { red: 'Red Panda', … }
+ * @param opts.cpuFaces  { red: '🐼', … }
  */
 export function createTable(opts) {
-  const { seatsEl, playEl, resetEl, pickEl, game, order, colors, cpuNames } = opts;
+  const { seatsEl, playEl, resetEl, pickEl, game, order, colors, cpuNames, cpuFaces } = opts;
   const KEY = { seats: `khel.${game}.seats`, tally: `khel.${game}.tally` };
 
   const read = (key, fallback) => {
@@ -86,8 +87,11 @@ export function createTable(opts) {
       const colour = card.dataset.colour;
       const who = occupants[colour];
       card.dataset.state = who === 'cpu' ? 'cpu' : (isPerson(who) ? 'human' : 'off');
+      // the piece already says which colour it is, so the card only needs
+      // the animal — the full "Yellow Duck" shows wherever there's room
+      const animal = cpuNames[colour].split(' ').pop();
       card.querySelector('[data-role="who"]').textContent =
-        who === 'cpu' ? `🤖 ${cpuNames[colour]}` : (isPerson(who) ? family.label(who) : 'Empty');
+        who === 'cpu' ? `${cpuFaces[colour]} ${animal}` : (isPerson(who) ? family.label(who) : 'Empty');
 
       const wins = isPerson(who) ? (tally[who] || 0) : 0;
       card.querySelector('[data-role="tally"]').textContent = wins ? `🏆 ${wins}` : '';
@@ -122,7 +126,7 @@ export function createTable(opts) {
           ${taken.has(m.id) ? '<span class="pick-note">already playing</span>' : ''}
         </button>`),
       `<button class="pick-option" data-who="cpu">
-         <span class="pick-dot pick-robot">🤖</span>
+         <span class="pick-dot pick-robot">${cpuFaces[colour]}</span>
          <span class="pick-name">${cpuNames[colour]}</span>
          ${occupants[colour] === 'cpu' ? '<span class="pick-tick">✓</span>' : ''}
        </button>`,

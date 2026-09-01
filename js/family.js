@@ -17,7 +17,7 @@ export const TINTS = [
   '#9B6BD6', '#F08A3C', '#38B7B0', '#E86FA6',
 ];
 
-const SEED = ['Chueen', 'Mama'];   // everyone else gets added when they turn up
+const SEED = ['Chueen', 'Mamma', 'Dada'];   // anyone else gets added when they turn up
 export const MAX_MEMBERS = 8;
 
 let members = [];

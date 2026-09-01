@@ -35,6 +35,14 @@ tap ＋ to add someone, and their wins across every game show beside their name.
 the house scoreboard as well as the roster. Removing someone takes their scores with
 them, and asks twice.
 
+A fresh device starts with Chueen, Mamma and Dada, and seats the first two, who are
+usually the ones holding the tablet. Everyone else gets added when they turn up.
+
+The computer's players are animals in the colour of the piece they're playing — Red
+Panda, Green Frog, Yellow Duck, Blue Whale. Easier to root against than "Player 2",
+and easier to say out loud. The seat card shows only the animal, since the piece
+beside it already says which colour it is.
+
 `js/family.js` owns all of it, and carries the old name-keyed scores across on first
 load so nothing built up before this is lost.
 

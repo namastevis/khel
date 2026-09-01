@@ -78,32 +78,10 @@ print("icons written")
 
 
 # ── the card that shows when the link is pasted into a chat ──────────
-
-def share_card(w=1200, h=630):
-    S = 2                                          # supersample
-    img = Image.new("RGB", (w * S, h * S), CREAM)
-    d = ImageDraw.Draw(img)
-
-    # the four colours as a soft band down the right
-    band = int(w * S * 0.055)
-    for i, c in enumerate((RED, GREEN, YELLOW, BLUE)):
-        y0 = h * S * i / 4
-        d.rectangle((w * S - band, y0, w * S, y0 + h * S / 4), fill=c)
-
-    tile = icon(int(260 * S), pad_ratio=0.0, radius_ratio=0.20)
-    img.paste(tile, (int(96 * S), int(180 * S)), tile)
-
-    x = int(410 * S)
-    d.text((x, int(196 * S)), "Khel", fill="#43331F", font=_font(int(112 * S)))
-    d.text((x, int(330 * S)), "Games made to be played together",
-           fill="#43331F", font=_font(int(40 * S)))
-    d.text((x, int(392 * S)), "No ads. No tracking. No sign-in.",
-           fill="#7A6A56", font=_font(int(32 * S)))
-    d.text((x, int(438 * S)), "Round one tablet, with no internet at all.",
-           fill="#7A6A56", font=_font(int(32 * S)))
-
-    return img.resize((w, h), Image.LANCZOS)
-
+#
+# WhatsApp and the rest show this at 1200 x 630. Every line is measured
+# and shrunk to fit its box, and the build fails rather than shipping a
+# card with a word sliced off the edge.
 
 def _font(size):
     from PIL import ImageFont
@@ -117,6 +95,60 @@ def _font(size):
         except OSError:
             continue
     return ImageFont.load_default(size)
+
+
+def _width(d, text, font):
+    return d.textbbox((0, 0), text, font=font)[2]
+
+
+def _fit(d, text, size, box):
+    """Largest font at or below `size` that keeps `text` inside `box` pixels."""
+    while size > 12:
+        font = _font(size)
+        if _width(d, text, font) <= box:
+            return font
+        size -= 2
+    raise SystemExit(f"share card: no size fits {text!r} into {box}px")
+
+
+def share_card(w=1200, h=630):
+    S = 2                                          # supersample
+    W, H = w * S, h * S
+    img = Image.new("RGB", (W, H), CREAM)
+    d = ImageDraw.Draw(img)
+
+    # the four colours as a strip along the bottom, where nothing can
+    # collide with them and no crop takes a bite out of the wordmark
+    strip = int(H * 0.028)
+    for i, c in enumerate((RED, GREEN, YELLOW, BLUE)):
+        d.rectangle((W * i / 4, H - strip, W * (i + 1) / 4, H), fill=c)
+
+    pad = int(96 * S)
+    tile_size = int(250 * S)
+    tile = icon(tile_size, pad_ratio=0.0, radius_ratio=0.20)
+    tile_y = (H - strip - tile_size) // 2
+    img.paste(tile, (pad, tile_y), tile)
+
+    x = pad + tile_size + int(58 * S)
+    box = W - pad - x                              # everything must fit in here
+
+    lines = [
+        ("Khel", 116, "#43331F", 0),
+        ("Games made to be played together", 42, "#43331F", 22),
+        ("No ads. No tracking. No sign-in.", 32, "#7A6A56", 16),
+        ("Round one tablet, with no internet at all.", 32, "#7A6A56", 6),
+    ]
+
+    fitted = [(text, _fit(d, text, size * S, box), colour, gap * S) for text, size, colour, gap in lines]
+    total = sum(d.textbbox((0, 0), t, font=f)[3] + g for t, f, _, g in fitted)
+
+    y = (H - strip - total) // 2
+    for text, font, colour, gap in fitted:
+        y += gap
+        d.text((x, y), text, fill=colour, font=font)
+        y += d.textbbox((0, 0), text, font=font)[3]
+
+    return img.resize((w, h), Image.LANCZOS)
 
 
 share_card().save("icons/share-card.png")

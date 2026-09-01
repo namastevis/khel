@@ -2,7 +2,7 @@
    games/snakes/index.js — Snakes & Ladders' entry point.
    ═══════════════════════════════════════════════════════════════ */
 
-import { ORDER, COLORS, CPU_NAMES } from './config.js';
+import { ORDER, COLORS, CPU_NAMES, CPU_FACES } from './config.js';
 import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock } from '../../js/audio.js';
@@ -112,6 +112,7 @@ export function mount(host, shell) {
     order: ORDER,
     colors: COLORS,
     cpuNames: CPU_NAMES,
+    cpuFaces: CPU_FACES,
   });
 
   const showSetup = () => {

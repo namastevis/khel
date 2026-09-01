@@ -6,7 +6,7 @@
    created here and torn down again in unmount().
    ═══════════════════════════════════════════════════════════════ */
 
-import { ORDER, COLORS, CPU_NAMES, cellOf } from './config.js';
+import { ORDER, COLORS, CPU_NAMES, CPU_FACES, cellOf } from './config.js';
 import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock } from '../../js/audio.js';
@@ -118,6 +118,7 @@ export function mount(host, shell) {
     order: ORDER,
     colors: COLORS,
     cpuNames: CPU_NAMES,
+    cpuFaces: CPU_FACES,
   });
 
   /* ── screens ── */

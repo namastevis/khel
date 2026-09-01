@@ -23,9 +23,13 @@ export const COLORS = {
   blue:   { main: '#4A9BE8', dark: '#2E76B8', light: '#D3E8FB', name: 'Blue' },
 };
 
+/* The computer's players. An animal a four-year-old can name, in the
+   colour of the piece it's playing — easier to root against than a robot. */
 export const CPU_NAMES = {
-  red: 'Robo Red', green: 'Go-Go Green', yellow: 'Sunny Yellow', blue: 'Bubbly Blue',
+  red: 'Red Panda', green: 'Green Frog', yellow: 'Yellow Duck', blue: 'Blue Whale',
 };
+
+export const CPU_FACES = { red: '🐼', green: '🐸', yellow: '🦆', blue: '🐳' };
 
 /* The classic board, with two changes: the square-1 ladder starts at 2
    instead (everyone is standing on 1), and the vicious 98 → 78 snake is

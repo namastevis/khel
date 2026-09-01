@@ -118,10 +118,28 @@ const files = shipped();
   for (const r of refs) {
     if (!existsSync(join(ROOT, r))) fail(`index.html references "${r}", which doesn't exist`);
   }
+  ok(`index.html's ${refs.length} local references all exist`);
+
+  // the link preview: the image must exist, and be the size the tags claim,
+  // or chat apps crop it and slice a word in half
   const og = html.match(/property="og:image" content="([^"]+)"/)?.[1] || '';
   const file = og.split('/').slice(-2).join('/');
-  if (og && !existsSync(join(ROOT, file))) fail(`the link preview image "${file}" is missing`);
-  ok(`index.html's ${refs.length} local references all exist`);
+  if (!og || !existsSync(join(ROOT, file))) {
+    fail(`the link preview image "${file || '(none declared)'}" is missing`);
+  } else {
+    const png = readFileSync(join(ROOT, file));
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    const said = {
+      w: Number(html.match(/property="og:image:width" content="(\d+)"/)?.[1]),
+      h: Number(html.match(/property="og:image:height" content="(\d+)"/)?.[1]),
+    };
+    if (width !== said.w || height !== said.h) {
+      fail(`the preview image is ${width}×${height} but the tags say ${said.w}×${said.h}`);
+    } else {
+      ok(`link preview is ${width}×${height}, as advertised`);
+    }
+  }
 }
 
 /* ── 6. nothing calls the audience by name ── */
@@ -155,7 +173,9 @@ const files = shipped();
     const changed = git('diff', '--name-only', baseline, '--')
       .split('\n')
       .filter(Boolean)
-      .filter((f) => !f.startsWith('test/') && !f.startsWith('tools/') && f !== 'README.md');
+      // the share card is fetched fresh by chat apps, never from the cache
+      .filter((f) => !f.startsWith('test/') && !f.startsWith('tools/')
+        && f !== 'README.md' && f !== 'icons/share-card.png');
 
     if (!changed.length) {
       ok(`nothing shipped has changed since ${baseline}`);

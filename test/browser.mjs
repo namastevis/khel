@@ -58,8 +58,8 @@ const alwaysRolls = (value) => ({
     state: c.dataset.state,
     who: c.querySelector('[data-role="who"]').textContent,
   })));
-  check('the family fills the first two seats',
-    shown.slice(0, 2).map((s) => s.who).join(',') === 'Chueen,Mama');
+  check('the child and her mother are seated by default',
+    shown.slice(0, 2).map((s) => s.who).join(',') === 'Chueen,Mamma');
   check('the rest start empty', shown.slice(2).every((s) => s.state === 'off'));
 
   // tapping a seat opens the picker rather than a text box
@@ -74,6 +74,8 @@ const alwaysRolls = (value) => ({
   await page.waitForTimeout(250);
   check('picking the computer fills the seat',
     (await page.getAttribute('.seat[data-colour="yellow"]', 'data-state')) === 'cpu');
+  check('and it\'s an animal, not a robot',
+    (await page.textContent('.seat[data-colour="yellow"] [data-role="who"]')).includes('Duck'));
 
   await page.click('.seat[data-colour="yellow"]');
   await page.waitForTimeout(200);
@@ -301,28 +303,28 @@ const alwaysRolls = (value) => ({
 
   check('the shelf shows who lives here',
     (await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim())))
-      .join(',').replace(/\s+/g, '') === 'Chueen,Mama');
+      .join(',').replace(/\s+/g, '') === 'Chueen,Mamma,Dada');
   await page.screenshot({ path: '/tmp/khel-family.png' });
 
   // add someone
   await page.click('.member-add');
   await page.waitForTimeout(250);
   check('the add sheet opens', await page.isVisible('#member-sheet.is-active'));
-  await page.fill('#member-name', 'Papa');
+  await page.fill('#member-name', 'Nani');
   await page.click('#member-done');
   await page.waitForTimeout(300);
   check('they join the family',
-    (await page.$$('.member:not(.member-add)')).length === 3);
+    (await page.$$('.member:not(.member-add)')).length === 4);
 
   // a typo, then the fix — the whole point of the exercise
-  await page.click('.member:nth-child(3)');
+  await page.click('.member:nth-child(4)');
   await page.waitForTimeout(250);
   await page.fill('#member-name', 'Chuen');
   await page.click('#member-done');
   await page.waitForTimeout(250);
 
   const idBefore = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chuen')?.id);
-  await page.click('.member:nth-child(3)');
+  await page.click('.member:nth-child(4)');
   await page.waitForTimeout(250);
   await page.fill('#member-name', 'Chueen2');
   await page.click('#member-done');
@@ -330,7 +332,7 @@ const alwaysRolls = (value) => ({
   const idAfter = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chueen2')?.id);
   check('fixing a spelling keeps the same person', !!idBefore && idBefore === idAfter);
   check('and doesn\'t create a second one',
-    (await page.$$('.member:not(.member-add)')).length === 3);
+    (await page.$$('.member:not(.member-add)')).length === 4);
 
   // they show up in a game's picker
   await page.click('.game-card[data-id="ludo"]');
@@ -344,7 +346,7 @@ const alwaysRolls = (value) => ({
   await page.waitForTimeout(400);
 
   // remove takes two taps, on purpose
-  await page.click('.member:nth-child(3)');
+  await page.click('.member:nth-child(4)');
   await page.waitForTimeout(250);
   await page.click('#member-remove');
   await page.waitForTimeout(150);
@@ -352,13 +354,13 @@ const alwaysRolls = (value) => ({
   await page.click('#member-remove');
   await page.waitForTimeout(300);
   check('and then removes them',
-    (await page.$$('.member:not(.member-add)')).length === 2);
+    (await page.$$('.member:not(.member-add)')).length === 3);
 
   check('the family survives a reload', await (async () => {
     await page.reload();
     await page.waitForTimeout(500);
     const names = await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim()));
-    return names.length === 2;
+    return names.length === 3;
   })());
 
   await ctx.close();
