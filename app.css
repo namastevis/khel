@@ -137,12 +137,32 @@ body {
 .game-card .card-blurb { color: var(--ink); font-size: clamp(13px, 3vmin, 16px); }
 .game-card .card-players { color: var(--ink-soft); font-size: clamp(11px, 2.6vmin, 14px); }
 
+/* ───────────── the dedication ─────────────
+   A sign-off, not body copy: a hairline to sit under, its own hand for
+   the name, and a line break where the em dash used to be. */
 .dedication {
-  margin: clamp(6px, 1.6vh, 14px) 0 0;
+  margin: clamp(12px, 2.6vh, 22px) 0 0;
+  padding-top: clamp(10px, 1.8vh, 14px);
+  border-top: 1px solid rgba(67, 51, 31, .14);
+  max-width: 30ch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ded-lead {
+  display: inline-block;                 /* so it can sit at a slight angle */
+  font-family: "Bradley Hand", "Snell Roundhand", "Segoe Script", "Chalkboard SE", cursive;
+  font-size: clamp(19px, 4.4vmin, 26px);
+  color: var(--ink);
+  transform: rotate(-1.2deg);
+}
+.ded-rest {
+  font-size: clamp(11px, 2.5vmin, 13px);
   color: var(--ink-soft);
-  font-size: clamp(12px, 2.8vmin, 15px);
-  max-width: 42ch;
-  line-height: 1.5;
+  line-height: 1.45;
+  opacity: .85;
 }
 
 .shelf-foot { display: flex; gap: 10px; margin-top: 2px; }

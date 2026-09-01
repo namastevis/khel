@@ -1,7 +1,7 @@
 /* Plays thousands of full games of Ludo headlessly and checks the rules
    never produce an impossible board. Run with:  node test/simulate.mjs   */
 
-import { createGame, legalMoves, applyMove, nextTurn, sameTurn, rollDie, current } from '../games/ludo/rules.js';
+import { createGame, legalMoves, applyMove, nextTurn, sameTurn, rollDie, current, isDone } from '../games/ludo/rules.js';
 import { chooseMove } from '../games/ludo/ai.js';
 import { HOME_REL, TRACK_END, absIndex, isSafeRel, SAFE_INDICES } from '../games/ludo/config.js';
 
@@ -37,7 +37,7 @@ function playOne(seats) {
   const g = createGame(seats);
   let turns = 0;
 
-  while (!g.winner) {
+  while (g.phase !== 'over') {
     if (++turns > 20000) { fail('game did not finish in 20000 rolls'); return null; }
 
     const d = rollDie();
@@ -57,14 +57,25 @@ function playOne(seats) {
 
     if (moves.length === 0) { nextTurn(g); continue; }
 
-    const { extraTurn } = applyMove(g, chooseMove(g, moves));
+    const { extraTurn, over } = applyMove(g, chooseMove(g, moves));
     checkBoard(g, `roll ${turns}`);
-    if (g.winner) break;
-    if (extraTurn) sameTurn(g); else nextTurn(g);
+    if (over) break;
+    if (extraTurn && !isDone(current(g))) sameTurn(g); else nextTurn(g);
   }
+
+  // everyone must come away with a placing, and only one of each
+  if (g.finished.length !== g.players.length) fail(`only ${g.finished.length} of ${g.players.length} players placed`);
+  if (new Set(g.finished).size !== g.finished.length) fail('a player placed twice');
+  if (g.finished[0] !== g.winner) fail('the winner is not the first to finish');
 
   const champ = g.players.find((p) => p.color === g.winner);
   if (!champ.tokens.every((t) => t === HOME_REL)) fail('winner does not have all four pieces home');
+
+  // everyone but the last player must genuinely be home
+  for (const color of g.finished.slice(0, -1)) {
+    const p = g.players.find((q) => q.color === color);
+    if (!isDone(p)) fail(`${color} was placed without finishing`);
+  }
   return { turns, winner: g.winner, players: g.players.length };
 }
 

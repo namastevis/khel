@@ -32,6 +32,12 @@ square-by-square hop, and the turn loop almost wholesale.
   piece to swap a seat between a person, the computer and nobody; tap a name to change
   it. Names are remembered on that device, so the board says *Chueen's turn*, and the
   win card says *Mama wins!*. Defaults live in `DEFAULT_NAMES` in `games/ludo/index.js`.
+- **Everyone gets a placing.** A round doesn't stop when the first player is home —
+  the rest play on for 2nd, 3rd and 4th, so nobody is simply cut off. The win card is
+  a podium.
+- **A running score.** Wins are counted against the name, not the colour, so Chueen
+  keeps her tally whichever piece she picks. It shows on the seats and on the win card,
+  lives on that device only, and there's a *Clear the scores* when it stops being fun.
 - **Built for touch** — big pieces, big dice, portrait and landscape.
 
 The computer opponents play sensibly but not ruthlessly: they take a merely-fine move

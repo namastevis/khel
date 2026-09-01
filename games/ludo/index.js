@@ -29,6 +29,7 @@ const TEMPLATE = `
       <div class="setup-foot">
         <button class="ghost-btn" data-el="quick">Playing on my own</button>
         <button class="ghost-btn" data-el="how">How to play</button>
+        <button class="ghost-btn" data-el="reset" hidden>Clear the scores</button>
         <button class="ghost-btn" data-el="back">&larr; All games</button>
       </div>
     </div>
@@ -67,6 +68,8 @@ const TEMPLATE = `
       <div class="win-crown">&#128081;</div>
       <h2 data-el="winTitle">Red wins!</h2>
       <p data-el="winSub">Well played!</p>
+      <ol class="podium" data-el="podium"></ol>
+      <p class="tally-row" data-el="tallyRow"></p>
       <button class="big-btn" data-el="again">Play again</button>
       <button class="ghost-btn" data-el="changePlayers">Change players</button>
     </div>
@@ -126,15 +129,44 @@ export function mount(host, shell) {
   load('khel.ludo.seats', seats, (s) => (c) => ['human', 'cpu', 'off'].includes(s[c]));
   load('khel.ludo.names', names, (s) => (c) => typeof s[c] === 'string');
 
+  /* ── who's ahead ──────────────────────────────────────────────
+     Wins are counted against the name, not the colour, so Chueen keeps
+     her tally whichever piece she picks. Kept on this device only, and
+     there's a Reset when the scores stop being fun.                  */
+  let tally = {};
+  try { tally = JSON.parse(localStorage.getItem('khel.ludo.tally') || '{}') || {}; } catch { /* ignore */ }
+
   const save = () => {
     try {
       localStorage.setItem('khel.ludo.seats', JSON.stringify(seats));
       localStorage.setItem('khel.ludo.names', JSON.stringify(names));
+      localStorage.setItem('khel.ludo.tally', JSON.stringify(tally));
     } catch { /* ignore */ }
   };
 
   // clearing a name shouldn't leave a nameless player at the table
   const nameOf = (color) => names[color].trim() || DEFAULT_NAMES[color] || COLORS[color].name;
+
+  // what this seat is called in the scores, person or computer
+  const labelFor = (color) => (seats[color] === 'cpu' ? CPU_NAMES[color] : nameOf(color));
+
+  function recordWin(order) {
+    const champion = order[0];
+    const name = labelFor(champion);
+    tally[name] = (tally[name] || 0) + 1;
+    save();
+
+    // the running score, best first, on the win card
+    const line = ORDER
+      .filter((c) => seats[c] !== 'off')
+      .map((c) => ({ name: labelFor(c), wins: tally[labelFor(c)] || 0 }))
+      .sort((a, b) => b.wins - a.wins)
+      .map(({ name: n, wins }) => `${n} ${wins}`)
+      .join('  ·  ');
+    el('tallyRow').textContent = line;
+
+    refreshSeats();
+  }
 
   el('seats').innerHTML = ORDER.map((color) => `
     <div class="seat" data-color="${color}" data-state="${seats[color]}">
@@ -145,6 +177,7 @@ export function mount(host, shell) {
              autocapitalize="words" autocomplete="off" enterkeyhint="done"
              aria-label="Name of the ${COLORS[color].name} player" value="${nameOf(color)}" />
       <span class="seat-fixed" data-role="fixed"></span>
+      <span class="seat-tally" data-role="tally"></span>
     </div>`).join('');
 
   function refreshSeats() {
@@ -161,6 +194,10 @@ export function mount(host, shell) {
       } else {
         fixed.textContent = seats[color] === 'cpu' ? `🤖 ${CPU_NAMES[color]}` : 'Not playing';
       }
+
+      const wins = tally[labelFor(color)] || 0;
+      card.querySelector('[data-role="tally"]').textContent =
+        seats[color] === 'off' || !wins ? '' : `🏆 ${wins}`;
     });
 
     const playing = ORDER.filter((c) => seats[c] !== 'off');
@@ -170,6 +207,8 @@ export function mount(host, shell) {
     el('play').textContent = ok
       ? (playing.length === 2 ? 'Play' : `Play with ${playing.length}`)
       : 'Pick 2 players';
+
+    el('reset').hidden = Object.values(tally).every((n) => !n);
 
     save();
   }
@@ -184,7 +223,7 @@ export function mount(host, shell) {
     screen('board').classList.add('is-active');
   };
 
-  const game = createController(root, el);
+  const game = createController(root, el, { onGameOver: recordWin });
 
   function start() {
     unlock();
@@ -227,6 +266,12 @@ export function mount(host, shell) {
     seats.red = 'human'; seats.green = 'cpu'; seats.yellow = 'off'; seats.blue = 'off';
     refreshSeats();
     start();
+  });
+
+  on('reset', 'click', () => {
+    tally = {};
+    sfx.tap();
+    refreshSeats();
   });
 
   on('how', 'click', () => el('helpOverlay').classList.add('is-active'));

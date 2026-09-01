@@ -35,6 +35,7 @@ export function createGame(seats, names = {}) {
     dice: null,
     sixStreak: 0,
     winner: null,
+    finished: [],       // colours, in the order they got all four pieces home
     phase: 'roll',      // 'roll' | 'pick' | 'over'
   };
 }
@@ -104,7 +105,9 @@ export function pathOf(move) {
   return cells;
 }
 
-/** Apply a move. Returns { events, extraTurn, winner }. */
+export const isDone = (player) => player.tokens.every((t) => t === HOME_REL);
+
+/** Apply a move. Returns { events, extraTurn, over }. */
 export function applyMove(g, move) {
   const me = current(g);
   const events = [];
@@ -118,20 +121,37 @@ export function applyMove(g, move) {
   }
   if (move.entersHome) events.push({ type: 'home', color: me.color });
 
-  if (me.tokens.every((t) => t === HOME_REL)) {
-    g.winner = me.color;
-    g.phase = 'over';
-    events.push({ type: 'win', color: me.color });
-    return { events, extraTurn: false, winner: me.color };
+  // Someone getting all four pieces home takes a place — it does not end
+  // the game. Everyone else plays on for the places below, so nobody is
+  // simply cut off mid-race.
+  if (isDone(me)) {
+    g.finished.push(me.color);
+    if (!g.winner) g.winner = me.color;
+    events.push({ type: 'finish', color: me.color, label: me.label, place: g.finished.length });
+
+    // when only one player is still going, they take the last place
+    if (g.finished.length >= g.players.length - 1) {
+      for (const p of g.players) {
+        if (!g.finished.includes(p.color)) g.finished.push(p.color);
+      }
+      g.phase = 'over';
+      events.push({ type: 'over', order: [...g.finished] });
+      return { events, extraTurn: false, over: true };
+    }
+
+    return { events, extraTurn: false, over: false };   // their race is run
   }
 
   const extraTurn = g.dice === 6 || move.captures.length > 0 || move.entersHome;
-  return { events, extraTurn, winner: null };
+  return { events, extraTurn, over: false };
 }
 
-/** Hand the turn to the next player. */
+/** Hand the turn to the next player who still has pieces to move. */
 export function nextTurn(g) {
-  g.turn = (g.turn + 1) % g.players.length;
+  for (let i = 1; i <= g.players.length; i++) {
+    const next = (g.turn + i) % g.players.length;
+    if (!isDone(g.players[next])) { g.turn = next; break; }
+  }
   g.dice = null;
   g.sixStreak = 0;
   g.phase = 'roll';

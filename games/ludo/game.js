@@ -7,7 +7,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { COLORS, HOME_REL, cellOf } from './config.js';
-import { createGame, current, rollDie, legalMoves, pathOf, applyMove, nextTurn, sameTurn } from './rules.js';
+import { createGame, current, rollDie, legalMoves, pathOf, applyMove, nextTurn, sameTurn, isDone } from './rules.js';
 import { chooseMove } from './ai.js';
 import { createRenderer, confettiBurst } from './render.js';
 import { sfx, unlock } from '../../js/audio.js';
@@ -23,11 +23,15 @@ const PIPS = {
   6: [[30, 26], [70, 26], [30, 50], [70, 50], [30, 74], [70, 74]],
 };
 
+const ORDINAL = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth' };
+const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '🎗️' };
+
 /**
- * @param root  the game's own element
- * @param el    name → element lookup, from index.js
+ * @param root   the game's own element
+ * @param el     name → element lookup, from index.js
+ * @param hooks  { onGameOver(orderOfColours, playersByColour) }
  */
-export function createController(root, el) {
+export function createController(root, el, hooks = {}) {
   const canvas = el('board');
   const renderer = createRenderer(canvas);
 
@@ -177,22 +181,32 @@ export function createController(root, el) {
     }
     moving = null;
 
-    const { events, extraTurn, winner } = applyMove(g, move);
+    const { events, extraTurn, over } = applyMove(g, move);
 
     for (const e of events) {
       if (e.type === 'enter') sfx.enter();
       if (e.type === 'capture') { sfx.capture(); toast(`${e.by} sent ${e.victim} home!`, 1700); }
-      if (e.type === 'home') { sfx.home(); toast('A piece is home! 🏠', 1500); }
+      if (e.type === 'home' && !isDone(current(g))) { sfx.home(); toast('A piece is home! 🏠', 1500); }
+      if (e.type === 'finish') {
+        sfx.win();
+        toast(e.place === 1 ? `${e.label} is home first! 🏆` : `${e.label} finishes ${ORDINAL[e.place]}!`, 2200);
+      }
     }
 
-    if (winner) {
-      sfx.win();
-      g.phase = 'over';
+    if (over) {
       setHint('');
-      await sleep(500);
+      await sleep(events.some((e) => e.type === 'finish') ? 1500 : 500);
       if (!alive(my)) return;
-      showWin(winner);
+      showWin(g.finished);
       return;
+    }
+
+    // a player who has just finished doesn't get another go
+    if (isDone(current(g))) {
+      await sleep(900);
+      if (!alive(my)) return;
+      nextTurn(g);
+      return beginTurn(my);
     }
 
     await sleep(280);
@@ -225,10 +239,25 @@ export function createController(root, el) {
     });
   }
 
-  function showWin(colorKey) {
-    const winner = g.players.find((p) => p.color === colorKey);
-    el('winTitle').textContent = `${winner.label} wins!`;
-    el('winSub').textContent = winner.kind === 'cpu' ? 'Good try — go again?' : 'Brilliant playing!';
+  function showWin(order) {
+    const byColour = (c) => g.players.find((p) => p.color === c);
+    const champ = byColour(order[0]);
+
+    el('winTitle').textContent = `${champ.label} wins!`;
+    el('winSub').textContent = order.length > 2 ? 'Here\'s how everyone finished' : 'Well played, both of you';
+
+    // everybody gets a placing — nobody is simply "not the winner"
+    el('podium').innerHTML = order.map((c, i) => {
+      const p = byColour(c);
+      return `<li class="podium-row" style="--c:${COLORS[c].main}">
+        <span class="podium-medal">${MEDAL[i + 1] || ''}</span>
+        <span class="podium-pawn"></span>
+        <span class="podium-name">${p.label}</span>
+      </li>`;
+    }).join('');
+
+    hooks.onGameOver?.(order, g.players);
+
     el('winOverlay').classList.add('is-active');
     stopConfetti = confettiBurst(el('confetti'));
   }

@@ -148,6 +148,73 @@ async function open(name, viewport) {
   await ctx.close();
 }
 
+/* ── finishing a round: everyone gets a placing, and the score sticks ── */
+{
+  const { ctx, page } = await open('podium', { width: 820, height: 1180 });
+  await page.click('.game-card[data-id="ludo"]');
+  await page.waitForTimeout(600);
+
+  await page.evaluate(() => {
+    Object.assign(LUDO.seats, { red: 'human', green: 'human', yellow: 'off', blue: 'off' });
+    Object.assign(LUDO.names, { red: 'Chueen', green: 'Mama' });
+    LUDO.refreshSeats();
+    LUDO.start();
+  });
+  await page.waitForTimeout(1000);
+
+  // put Chueen one exact roll from home, so the round ends quickly
+  await page.evaluate(() => {
+    const g = LUDO.game.state;
+    g.players[0].tokens = [56, 56, 56, 50];
+    g.players[1].tokens = [12, 20, 28, 36];
+  });
+
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    if (await page.evaluate(() => LUDO.game.state?.phase === 'over')) break;
+    const phase = await page.evaluate(() => LUDO.game.state?.phase);
+    if (phase === 'roll') {
+      await page.click('[data-el="dice"]', { force: true }).catch(() => {});
+    } else if (phase === 'pick') {
+      const pt = await page.evaluate(() => {
+        const g = LUDO.game.state;
+        const r = document.querySelector('[data-el="board"]').getBoundingClientRect();
+        const me = g.players[g.turn];
+        const ti = LUDO.game.pickable[0];
+        const t = me.tokens[ti];
+        const [gx, gy] = LUDO.geom.cellOf(me.color, t, (t === -1 || t === 56) ? ti : 0);
+        return { x: r.left + (gx / 15) * r.width, y: r.top + (gy / 15) * r.height };
+      }).catch(() => null);
+      if (pt) await page.mouse.click(pt.x, pt.y);
+    }
+    await page.waitForTimeout(90);
+  }
+
+  await page.waitForTimeout(1400);
+  check('the round ended', await page.evaluate(() => LUDO.game.state?.phase === 'over'));
+  check('everyone got a placing', (await page.$$('.podium-row')).length === 2);
+  check('Chueen is on top of the podium',
+    (await page.textContent('.podium-row:first-child .podium-name')) === 'Chueen');
+  check('the running score is shown',
+    (await page.textContent('[data-el="tallyRow"]')).includes('Chueen 1'));
+  await page.screenshot({ path: '/tmp/khel-podium.png' });
+
+  await page.click('[data-el="changePlayers"]');
+  await page.waitForTimeout(400);
+  check('the win shows on her seat',
+    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')).includes('1'));
+  check('there\'s a way to clear the scores', await page.isVisible('[data-el="reset"]'));
+  await page.screenshot({ path: '/tmp/khel-setup-tally.png' });
+
+  await page.click('[data-el="reset"]');
+  await page.waitForTimeout(250);
+  check('clearing the scores works',
+    (await page.textContent('.seat[data-color="red"] [data-role="tally"]')) === ''
+    && !(await page.isVisible('[data-el="reset"]')));
+
+  await ctx.close();
+}
+
 /* ── landscape ── */
 {
   const { ctx, page } = await open('landscape', { width: 1180, height: 760 });
