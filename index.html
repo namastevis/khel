@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Ludo Land</title>
+<meta name="description" content="A friendly, ad-free Ludo game for children. Works offline." />
+<meta name="theme-color" content="#FFF6E5" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Ludo Land" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+<!-- ══════════════ MENU ══════════════ -->
+<section id="screen-menu" class="screen is-active">
+  <div class="menu-wrap">
+    <h1 class="logo">
+      <span class="logo-l" style="--c:var(--red)">L</span><span class="logo-l" style="--c:var(--green)">u</span><span class="logo-l" style="--c:var(--yellow)">d</span><span class="logo-l" style="--c:var(--blue)">o</span>
+      <em>Land</em>
+    </h1>
+    <p class="tagline">No ads. No internet needed. Just play.</p>
+
+    <p class="setup-hint">Tap a colour to change who plays</p>
+
+    <div class="seats" id="seats"></div>
+
+    <button id="btn-play" class="big-btn">Play</button>
+
+    <div class="menu-foot">
+      <button id="btn-quick" class="ghost-btn">Just me vs the computer</button>
+      <button id="btn-how" class="ghost-btn">How to play</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ GAME ══════════════ -->
+<section id="screen-game" class="screen">
+  <div class="stage">
+    <div class="board-holder">
+      <canvas id="board" aria-label="Ludo board"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="turn-card" id="turn-card">
+        <span class="turn-dot" id="turn-dot"></span>
+        <span class="turn-name" id="turn-name">Red</span>
+      </div>
+
+      <button id="dice" class="dice" aria-label="Roll the dice">
+        <svg viewBox="0 0 100 100" id="dice-face"></svg>
+      </button>
+
+      <p class="hint" id="hint">Tap the dice!</p>
+
+      <div class="panel-foot">
+        <button id="btn-sound" class="icon-btn" aria-label="Sound on or off">&#128266;</button>
+        <button id="btn-quit" class="icon-btn" aria-label="Back to menu">&#127968;</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<!-- ══════════════ WIN ══════════════ -->
+<div id="win-overlay" class="overlay">
+  <canvas id="confetti"></canvas>
+  <div class="win-card">
+    <div class="win-crown">&#128081;</div>
+    <h2 id="win-title">Red wins!</h2>
+    <p id="win-sub">Well played!</p>
+    <button id="btn-again" class="big-btn">Play again</button>
+    <button id="btn-menu" class="ghost-btn">Change players</button>
+  </div>
+</div>
+
+<!-- ══════════════ HOW TO PLAY ══════════════ -->
+<div id="help-overlay" class="overlay">
+  <div class="help-card">
+    <h2>How to play</h2>
+    <ol>
+      <li><b>Tap the dice</b> when it is your turn.</li>
+      <li>You need a <b>6</b> to bring a piece out of its house.</li>
+      <li>Tap a <b>glowing piece</b> to move it. If only one piece can move, it moves by itself.</li>
+      <li>Land on someone else's piece and it goes <b>back home</b> &mdash; unless it is standing on a <b>star</b>.</li>
+      <li>Roll a <b>6</b>, send someone home, or get a piece home &mdash; you get <b>another turn</b>.</li>
+      <li>Get all <b>4 pieces</b> to the middle to win. You need the exact number to finish!</li>
+    </ol>
+    <button id="btn-help-close" class="big-btn">Got it</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
