@@ -1,9 +1,9 @@
-/* Plays thousands of full games headlessly and checks the rules never
-   produce an impossible board. Run with:  node test/simulate.mjs      */
+/* Plays thousands of full games of Ludo headlessly and checks the rules
+   never produce an impossible board. Run with:  node test/simulate.mjs   */
 
-import { createGame, legalMoves, applyMove, nextTurn, sameTurn, rollDie, current } from '../js/rules.js';
-import { chooseMove } from '../js/ai.js';
-import { HOME_REL, TRACK_END, absIndex, isSafeRel, SAFE_INDICES } from '../js/config.js';
+import { createGame, legalMoves, applyMove, nextTurn, sameTurn, rollDie, current } from '../games/ludo/rules.js';
+import { chooseMove } from '../games/ludo/ai.js';
+import { HOME_REL, TRACK_END, absIndex, isSafeRel, SAFE_INDICES } from '../games/ludo/config.js';
 
 const GAMES = Number(process.argv[2] || 2000);
 let problems = 0;
@@ -79,8 +79,7 @@ const wins = {};
 let totalTurns = 0, played = 0, longest = 0;
 
 for (let i = 0; i < GAMES; i++) {
-  const seats = LINEUPS[i % LINEUPS.length];
-  const r = playOne(seats);
+  const r = playOne(LINEUPS[i % LINEUPS.length]);
   if (!r) continue;
   played++;
   totalTurns += r.turns;

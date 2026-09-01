@@ -1,23 +1,35 @@
 /* ═══════════════════════════════════════════════════════════════
    sw.js — offline cache.
-   Bump CACHE when you change any file, so tablets pick up the
-   new version instead of the one they already have.
+
+   Everything is precached, games included: the whole shelf is a few
+   dozen kilobytes, so a tablet in aeroplane mode gets every game,
+   not just the ones it happened to open.
+
+   Bump CACHE whenever you change a file, or installed tablets will
+   keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'ludo-land-v1';
+const CACHE = 'khel-v1';
 
 const ASSETS = [
   './',
   'index.html',
   'app.css',
   'manifest.webmanifest',
-  'js/main.js',
-  'js/game.js',
-  'js/rules.js',
-  'js/render.js',
-  'js/config.js',
-  'js/ai.js',
+
+  'js/shell.js',
+  'js/catalog.js',
   'js/audio.js',
+  'js/toast.js',
+
+  'games/ludo/index.js',
+  'games/ludo/game.js',
+  'games/ludo/rules.js',
+  'games/ludo/render.js',
+  'games/ludo/config.js',
+  'games/ludo/ai.js',
+  'games/ludo/ludo.css',
+
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
@@ -43,7 +55,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then((hit) => {
+    caches.match(e.request, { ignoreSearch: true }).then((hit) => {
       if (hit) return hit;
       return fetch(e.request)
         .then((res) => {

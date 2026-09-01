@@ -1,6 +1,8 @@
 /* ═══════════════════════════════════════════════
-   Ludo Land — styles
-   Big targets, warm colours, no fine print.
+   Khel — the shell.
+   Everything here is shared by every game: colours,
+   buttons, overlays, the toast, and the shelf itself.
+   A game's own styling lives in games/<id>/<id>.css
    ═══════════════════════════════════════════════ */
 
 :root {
@@ -53,8 +55,18 @@ body {
 .screen { position: fixed; inset: 0; display: none; }
 .screen.is-active { display: block; }
 
-/* ───────────── menu ───────────── */
-.menu-wrap {
+#game-host { height: 100%; }
+
+.loading {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: var(--ink-soft); font-weight: 700;
+  font-size: clamp(15px, 3.6vmin, 20px);
+}
+.loading[hidden] { display: none; }
+
+/* ───────────── the shelf ───────────── */
+.shelf-wrap {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -68,7 +80,7 @@ body {
 
 .logo {
   margin: 0;
-  font-size: clamp(44px, 12vmin, 96px);
+  font-size: clamp(46px, 13vmin, 100px);
   line-height: 1;
   letter-spacing: 2px;
   font-weight: 800;
@@ -82,18 +94,83 @@ body {
 .logo-l:nth-child(2) { animation-delay: .15s }
 .logo-l:nth-child(3) { animation-delay: .3s }
 .logo-l:nth-child(4) { animation-delay: .45s }
-.logo em {
-  display: block;
-  font-style: normal;
-  font-size: .38em;
-  letter-spacing: 6px;
-  color: var(--ink-soft);
-  margin-top: .1em;
-}
 @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
 
 .tagline { margin: 0; color: var(--ink-soft); font-size: clamp(14px, 3.4vmin, 20px); }
-.setup-hint { margin: clamp(4px, 1.5vh, 14px) 0 0; color: var(--ink-soft); font-size: clamp(13px, 3vmin, 17px); }
+
+/* Cards keep a sensible width, so one game on the shelf looks
+   deliberate rather than stretched, and six still line up neatly. */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 92vw), 340px));
+  justify-content: center;
+  gap: clamp(12px, 2.6vmin, 20px);
+  width: min(760px, 96vw);
+  margin-top: clamp(4px, 1.5vh, 14px);
+}
+
+.game-card {
+  --accent: var(--red);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 3vmin, 20px);
+  text-align: left;
+  font-family: inherit;
+  color: var(--ink);
+  border: none;
+  border-radius: 26px;
+  background: var(--white);
+  box-shadow: 0 7px 0 rgba(67,51,31,.14);
+  padding: clamp(12px, 2.6vmin, 20px);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.game-card:active { transform: translateY(4px); box-shadow: 0 3px 0 rgba(67,51,31,.14); }
+.game-card svg { width: clamp(56px, 13vmin, 84px); height: clamp(56px, 13vmin, 84px); flex: none; }
+.game-card .card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.game-card .card-title {
+  font-size: clamp(20px, 4.6vmin, 28px);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+.game-card .card-blurb { color: var(--ink); font-size: clamp(13px, 3vmin, 16px); }
+.game-card .card-players { color: var(--ink-soft); font-size: clamp(11px, 2.6vmin, 14px); }
+
+.shelf-foot { display: flex; gap: 10px; margin-top: 2px; }
+
+/* ───────────── shared buttons ───────────── */
+.big-btn {
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: clamp(20px, 5vmin, 30px);
+  color: #fff;
+  background: linear-gradient(180deg, #FF8A5B, #F0544F);
+  padding: clamp(12px, 2.6vmin, 20px) clamp(40px, 10vmin, 72px);
+  border-radius: 999px;
+  box-shadow: 0 7px 0 var(--red-d);
+  cursor: pointer;
+  margin-top: clamp(6px, 2vh, 16px);
+}
+.big-btn:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--red-d); }
+.big-btn[disabled] { opacity: .45; box-shadow: 0 7px 0 rgba(0,0,0,.15); }
+
+.ghost-btn {
+  border: none; background: transparent; font-family: inherit;
+  color: var(--ink-soft); font-size: clamp(13px, 3vmin, 17px);
+  text-decoration: underline; text-underline-offset: 4px;
+  padding: 10px 14px; cursor: pointer; font-weight: 600;
+}
+
+.icon-btn {
+  border: none; background: var(--white); border-radius: 16px;
+  width: clamp(40px, 9vmin, 54px); height: clamp(40px, 9vmin, 54px);
+  font-size: clamp(18px, 4.4vmin, 24px);
+  box-shadow: var(--shadow); cursor: pointer;
+}
+.icon-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
+.icon-btn.is-muted { opacity: .45; }
 
 /* ───────────── add to home screen ───────────── */
 .install-bar {
@@ -127,174 +204,91 @@ body {
 .install-text small { color: var(--ink-soft); font-size: clamp(11px, 2.6vmin, 14px); }
 
 .install-x {
-  border: none;
-  background: transparent;
+  border: none; background: transparent;
   color: var(--ink-soft);
   font-size: clamp(22px, 5vmin, 28px);
-  font-family: inherit;
-  line-height: 1;
-  padding: 0 10px;
-  cursor: pointer;
-  border-radius: 14px;
+  font-family: inherit; line-height: 1;
+  padding: 0 10px; cursor: pointer; border-radius: 14px;
 }
 .install-x:active { background: rgba(67,51,31,.08); }
 
-.ios-note { margin: 0 0 6px; color: var(--ink-soft); font-size: clamp(14px, 3.2vmin, 17px); }
-.ios-glyph {
-  display: inline-block;
-  background: var(--blue);
-  color: #fff;
-  border-radius: 6px;
-  padding: 0 7px;
-  font-size: .95em;
-}
-
-.seats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: clamp(8px, 2vmin, 16px);
-  width: min(560px, 96vw);
-}
-
-.seat {
-  border: none;
-  border-radius: var(--radius);
-  padding: clamp(10px, 2.4vmin, 18px) 4px;
-  background: var(--white);
-  box-shadow: var(--shadow);
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  transition: transform .12s ease, opacity .2s ease;
-}
-.seat:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
-.seat svg { width: clamp(34px, 8vmin, 54px); height: clamp(34px, 8vmin, 54px); }
-.seat .who {
-  font-size: clamp(12px, 2.7vmin, 16px);
-  font-weight: 700;
+/* ───────────── iOS: one pointer, not a page of steps ─────────────
+   A coach mark aimed at Safari's own Share button: bottom bar on a
+   phone, top right on an iPad. One line, and any tap closes it.     */
+.coach {
+  position: fixed; inset: 0;
+  z-index: 60;
+  background: rgba(67, 51, 31, .5);
   color: var(--ink);
 }
-.seat[data-state="off"] { opacity: .38; }
-.seat[data-state="off"] .who { color: var(--ink-soft); }
+.coach[hidden] { display: none; }
 
-.big-btn {
-  border: none;
-  font-family: inherit;
-  font-weight: 800;
-  font-size: clamp(20px, 5vmin, 30px);
-  color: #fff;
-  background: linear-gradient(180deg, #FF8A5B, #F0544F);
-  padding: clamp(12px, 2.6vmin, 20px) clamp(40px, 10vmin, 72px);
-  border-radius: 999px;
-  box-shadow: 0 7px 0 var(--red-d);
-  cursor: pointer;
-  margin-top: clamp(6px, 2vh, 16px);
-}
-.big-btn:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--red-d); }
-.big-btn[disabled] { opacity: .45; box-shadow: 0 7px 0 rgba(0,0,0,.15); }
-
-.menu-foot { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
-.ghost-btn {
-  border: none; background: transparent; font-family: inherit;
-  color: var(--ink-soft); font-size: clamp(13px, 3vmin, 17px);
-  text-decoration: underline; text-underline-offset: 4px;
-  padding: 10px 14px; cursor: pointer; font-weight: 600;
-}
-
-/* ───────────── game stage ───────────── */
-.stage {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 1.6vmin, 18px);
-  padding: clamp(6px, 1.6vmin, 16px);
-}
-
-.board-holder {
-  flex: 0 1 auto;
-  display: grid;
-  place-items: center;
-  min-height: 0;
-}
-#board {
-  display: block;
-  border-radius: 26px;
-  box-shadow: 0 10px 26px rgba(67,51,31,.20);
-  touch-action: none;
-}
-
-.panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(10px, 3vmin, 26px);
-  flex-wrap: wrap;
-}
-
-.turn-card {
-  display: flex; align-items: center; gap: 10px;
+.coach-bubble {
+  position: absolute;
   background: var(--white);
-  border-radius: 999px;
-  padding: 8px 18px 8px 10px;
-  box-shadow: var(--shadow);
+  border-radius: 22px;
+  padding: 14px 20px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.32);
+  max-width: min(400px, 88vw);
+  text-align: center;
 }
-.turn-dot {
-  width: clamp(20px, 4.6vmin, 30px); height: clamp(20px, 4.6vmin, 30px);
-  border-radius: 50%; background: var(--red);
-  box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
+.coach-line {
+  margin: 0;
+  font-size: clamp(16px, 4vmin, 21px);
+  font-weight: 700;
+  line-height: 1.45;
 }
-.turn-name { font-weight: 800; font-size: clamp(15px, 3.6vmin, 22px); }
-
-.dice {
-  width: clamp(66px, 15vmin, 104px);
-  height: clamp(66px, 15vmin, 104px);
-  border: none; border-radius: 24px;
-  background: var(--white);
-  box-shadow: 0 7px 0 rgba(67,51,31,.22);
-  cursor: pointer; padding: 8px;
-  transition: transform .1s ease;
+.coach-sub {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(11px, 2.6vmin, 13px);
+  font-weight: 600;
 }
-.dice svg { width: 100%; height: 100%; display: block; }
-.dice:active { transform: translateY(4px); box-shadow: 0 3px 0 rgba(67,51,31,.22); }
-.dice[disabled] { opacity: .5; }
-.dice.is-ready { animation: pulse 1.1s ease-in-out infinite; }
-@keyframes pulse {
-  0%,100% { box-shadow: 0 7px 0 rgba(67,51,31,.22), 0 0 0 0 rgba(255,197,49,.7); }
-  50%     { box-shadow: 0 7px 0 rgba(67,51,31,.22), 0 0 0 16px rgba(255,197,49,0); }
-}
-.dice.is-rolling { animation: shake .45s ease-in-out; }
-@keyframes shake {
-  0%,100% { transform: rotate(0) }
-  20% { transform: rotate(-14deg) scale(1.06) }
-  45% { transform: rotate(12deg) scale(1.06) }
-  70% { transform: rotate(-8deg) scale(1.03) }
+.share-glyph {
+  width: 1.15em; height: 1.15em;
+  vertical-align: -0.22em;
+  color: var(--blue);
+  margin: 0 .1em;
 }
 
-.hint {
-  margin: 0; color: var(--ink-soft); font-weight: 600;
-  font-size: clamp(13px, 3.2vmin, 18px); text-align: center;
-  min-width: 8ch;
+.coach-arrow {
+  position: absolute;
+  width: clamp(30px, 7vmin, 44px);
+  color: var(--yellow);
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
 }
 
-.panel-foot { display: flex; gap: 8px; }
-.icon-btn {
-  border: none; background: var(--white); border-radius: 16px;
-  width: clamp(40px, 9vmin, 54px); height: clamp(40px, 9vmin, 54px);
-  font-size: clamp(18px, 4.4vmin, 24px);
-  box-shadow: var(--shadow); cursor: pointer;
+/* phone: Safari's share button sits in the bottom bar, middle */
+.coach.at-bottom .coach-bubble {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 148px);
 }
-.icon-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
-.icon-btn.is-muted { opacity: .45; }
+.coach.at-bottom .coach-arrow {
+  left: 50%;
+  margin-left: clamp(-22px, -3.5vmin, -15px);
+  bottom: calc(env(safe-area-inset-bottom) + 74px);
+  animation: nudge-down 1.3s ease-in-out infinite;
+}
+@keyframes nudge-down {
+  0%, 100% { transform: translateY(0) }
+  50%      { transform: translateY(10px) }
+}
 
-/* landscape: board left, panel right */
-@media (orientation: landscape) {
-  .stage { flex-direction: row; }
-  .panel { flex-direction: column; flex-wrap: nowrap; }
+/* iPad: it's up in the top bar, towards the right */
+.coach.at-top .coach-bubble {
+  top: calc(env(safe-area-inset-top) + 128px);
+  right: 12px;
+}
+.coach.at-top .coach-arrow {
+  top: calc(env(safe-area-inset-top) + 54px);
+  right: clamp(50px, 9vw, 96px);
+  transform: rotate(180deg);
+  animation: nudge-up 1.3s ease-in-out infinite;
+}
+@keyframes nudge-up {
+  0%, 100% { transform: rotate(180deg) translateY(0) }
+  50%      { transform: rotate(180deg) translateY(10px) }
 }
 
 /* ───────────── toast ───────────── */
@@ -327,8 +321,6 @@ body {
   padding: 20px;
 }
 .overlay.is-active { display: grid; }
-
-#confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 .win-card, .help-card {
   position: relative;

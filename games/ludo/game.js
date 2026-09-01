@@ -1,14 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════
    game.js — the controller: turn flow, animation, input, HUD.
+
+   Everything is scoped to the element the shell mounted us into, so
+   nothing here touches the rest of the page and destroy() really
+   does leave no trace.
    ═══════════════════════════════════════════════════════════════ */
 
 import { COLORS, HOME_REL, cellOf } from './config.js';
 import { createGame, current, rollDie, legalMoves, pathOf, applyMove, nextTurn, sameTurn } from './rules.js';
 import { chooseMove } from './ai.js';
 import { createRenderer, confettiBurst } from './render.js';
-import { sfx, unlock } from './audio.js';
-
-const $ = (id) => document.getElementById(id);
+import { sfx, unlock } from '../../js/audio.js';
+import { toast } from '../../js/toast.js';
 
 /* pip layout for each die face, in a 100 × 100 box */
 const PIPS = {
@@ -20,8 +23,12 @@ const PIPS = {
   6: [[30, 26], [70, 26], [30, 50], [70, 50], [30, 74], [70, 74]],
 };
 
-export function createController(onGameOver) {
-  const canvas = $('board');
+/**
+ * @param root  the game's own element
+ * @param el    name → element lookup, from index.js
+ */
+export function createController(root, el) {
+  const canvas = el('board');
   const renderer = createRenderer(canvas);
 
   let g = null;
@@ -31,22 +38,12 @@ export function createController(onGameOver) {
   let stopConfetti = null;
   let running = false;
 
-  /* ── helpers ───────────────────────────────────────────── */
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const alive = (my) => my === gen;
-
-  function toast(text, ms = 1500) {
-    const el = $('toast');
-    el.textContent = text;
-    el.classList.add('show');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove('show'), ms);
-  }
-
-  function setHint(text) { $('hint').textContent = text; }
+  const setHint = (text) => { el('hint').textContent = text; };
 
   function drawDie(n) {
-    const svg = $('dice-face');
+    const svg = el('diceFace');
     if (!n) { svg.innerHTML = '<circle cx="50" cy="50" r="8" fill="#CBBBA0"/>'; return; }
     svg.innerHTML = PIPS[n]
       .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9.5" fill="#43331F"/>`)
@@ -56,13 +53,13 @@ export function createController(onGameOver) {
   function updateHUD() {
     if (!g) return;
     const me = current(g);
-    $('turn-dot').style.background = COLORS[me.color].main;
-    $('turn-name').textContent = me.label;
+    el('turnDot').style.background = COLORS[me.color].main;
+    el('turnName').textContent = me.label;
   }
 
   function layout() {
-    const stage = document.querySelector('.stage');
-    const panel = document.querySelector('.panel');
+    const stage = root.querySelector('.stage');
+    const panel = root.querySelector('.panel');
     if (!stage || !stage.clientWidth) return;
     const landscape = window.innerWidth > window.innerHeight;
     const gapAndPad = 44;
@@ -87,15 +84,15 @@ export function createController(onGameOver) {
     const me = current(g);
 
     if (me.kind === 'cpu') {
-      $('dice').disabled = true;
-      $('dice').classList.remove('is-ready');
+      el('dice').disabled = true;
+      el('dice').classList.remove('is-ready');
       setHint(`${me.label} is thinking…`);
       await sleep(620);
       if (!alive(my)) return;
       doRoll(my);
     } else {
-      $('dice').disabled = false;
-      $('dice').classList.add('is-ready');
+      el('dice').disabled = false;
+      el('dice').classList.add('is-ready');
       setHint('Tap the dice!');
     }
   }
@@ -103,9 +100,9 @@ export function createController(onGameOver) {
   async function doRoll(my) {
     if (!alive(my) || !g || g.phase !== 'roll') return;
     g.phase = 'rolling';
-    $('dice').disabled = true;
-    $('dice').classList.remove('is-ready');
-    $('dice').classList.add('is-rolling');
+    el('dice').disabled = true;
+    el('dice').classList.remove('is-ready');
+    el('dice').classList.add('is-rolling');
     sfx.roll();
 
     // tumble through a few faces before settling
@@ -115,7 +112,7 @@ export function createController(onGameOver) {
     g.dice = d;
     g.sixStreak = d === 6 ? g.sixStreak + 1 : 0;
     drawDie(d);
-    $('dice').classList.remove('is-rolling');
+    el('dice').classList.remove('is-rolling');
     sfx.land();
     await sleep(320);
     if (!alive(my)) return;
@@ -230,15 +227,14 @@ export function createController(onGameOver) {
 
   function showWin(colorKey) {
     const winner = g.players.find((p) => p.color === colorKey);
-    $('win-title').textContent = `${winner.label} wins!`;
-    $('win-sub').textContent = winner.kind === 'cpu' ? 'Good try — go again?' : 'Brilliant playing!';
-    $('win-overlay').classList.add('is-active');
-    stopConfetti = confettiBurst($('confetti'));
-    onGameOver?.();
+    el('winTitle').textContent = `${winner.label} wins!`;
+    el('winSub').textContent = winner.kind === 'cpu' ? 'Good try — go again?' : 'Brilliant playing!';
+    el('winOverlay').classList.add('is-active');
+    stopConfetti = confettiBurst(el('confetti'));
   }
 
   /* ── input ─────────────────────────────────────────────── */
-  canvas.addEventListener('pointerdown', (ev) => {
+  const onPointerDown = (ev) => {
     if (!g || g.phase !== 'pick') return;
     const ti = renderer.tokenAt(g, ev.clientX, ev.clientY);
     if (ti === null || !highlight.includes(ti)) return;
@@ -246,22 +242,27 @@ export function createController(onGameOver) {
     if (!move) return;
     sfx.tap();
     performMove(gen, move);
-  });
+  };
 
-  $('dice').addEventListener('click', () => {
+  const onDiceClick = () => {
     unlock();
     if (g && g.phase === 'roll' && current(g).kind === 'human') doRoll(gen);
-  });
+  };
 
+  const onOrientation = () => setTimeout(layout, 250);
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  el('dice').addEventListener('click', onDiceClick);
   window.addEventListener('resize', layout);
-  window.addEventListener('orientationchange', () => setTimeout(layout, 250));
+  window.addEventListener('orientationchange', onOrientation);
+  window.visualViewport?.addEventListener('resize', layout);
 
   /* ── public API ────────────────────────────────────────── */
   return {
     start(seats) {
       gen++;
       stopConfetti?.(); stopConfetti = null;
-      $('win-overlay').classList.remove('is-active');
+      el('winOverlay').classList.remove('is-active');
       g = createGame(seats);
       moving = null; highlight = [];
       running = true;
@@ -276,6 +277,14 @@ export function createController(onGameOver) {
       running = false;
       stopConfetti?.(); stopConfetti = null;
       g = null;
+    },
+    destroy() {
+      this.stop();
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      el('dice').removeEventListener('click', onDiceClick);
+      window.removeEventListener('resize', layout);
+      window.removeEventListener('orientationchange', onOrientation);
+      window.visualViewport?.removeEventListener('resize', layout);
     },
     layout,
     get state() { return g; },

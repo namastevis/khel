@@ -1,53 +1,77 @@
+"""Draws the Khel app icons. Run from the repo root:  python3 tools/make-icons.py
+
+Four rounded tiles, one per colour, each with a simple white play shape —
+a shelf of small things to play with, rather than any one game.
+"""
+
 from PIL import Image, ImageDraw
 
 RED, GREEN, YELLOW, BLUE = "#F0544F", "#3FBF6F", "#FFC531", "#4A9BE8"
 CREAM = "#FFF6E5"
 
-def rounded(d, box, r, fill):
-    d.rounded_rectangle(box, radius=r, fill=fill)
 
-def board(size, pad_ratio=0.06, bg=CREAM, radius_ratio=0.20):
-    S = size * 4  # supersample
+def icon(size, pad_ratio=0.07, radius_ratio=0.22, bg=CREAM):
+    S = size * 4                                   # supersample, then shrink
     img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    rounded(d, (0, 0, S, S), int(S * radius_ratio), bg)
+    d.rounded_rectangle((0, 0, S, S), radius=int(S * radius_ratio), fill=bg)
 
     p = int(S * pad_ratio)
     inner = S - 2 * p
-    cell = inner / 15.0
-    def C(a, b): return p + a * cell, p + b * cell
+    gap = inner * 0.055
+    tile = (inner - gap) / 2
+    r = int(tile * 0.26)
 
-    yard = 5.6 * cell
-    r = int(cell * 1.0)
-    for (col, ox, oy) in [(RED, 0.2, 0.2), (GREEN, 9.2, 0.2), (YELLOW, 9.2, 9.2), (BLUE, 0.2, 9.2)]:
-        x, y = C(ox, oy)
-        rounded(d, (x, y, x + yard, y + yard), r, col)
-        x2, y2 = C(ox + 1.0, oy + 1.0)
-        rounded(d, (x2, y2, x2 + 3.6 * cell, y2 + 3.6 * cell), int(cell * 0.7), "#FFFDF6")
+    def cell(col, row):
+        x = p + col * (tile + gap)
+        y = p + row * (tile + gap)
+        return x, y, x + tile, y + tile
 
-    # cross arms
-    x, y = C(6, 0.2); rounded(d, (x, y, x + 3 * cell, y + 14.6 * cell), int(cell * .5), "#FFFDF6")
-    x, y = C(0.2, 6); rounded(d, (x, y, x + 14.6 * cell, y + 3 * cell), int(cell * .5), "#FFFDF6")
+    # top-left: red, with a die pip pattern
+    x0, y0, x1, y1 = cell(0, 0)
+    d.rounded_rectangle((x0, y0, x1, y1), radius=r, fill=RED)
+    pip = tile * 0.085
+    for fx, fy in ((0.30, 0.30), (0.50, 0.50), (0.70, 0.70)):
+        cx, cy = x0 + tile * fx, y0 + tile * fy
+        d.ellipse((cx - pip, cy - pip, cx + pip, cy + pip), fill="#FFFDF6")
 
-    # coloured home columns
-    x, y = C(1, 7); d.rectangle((x, y, x + 5 * cell, y + cell), fill=RED)
-    x, y = C(7, 1); d.rectangle((x, y, x + cell, y + 5 * cell), fill=GREEN)
-    x, y = C(9, 7); d.rectangle((x, y, x + 5 * cell, y + cell), fill=YELLOW)
-    x, y = C(7, 9); d.rectangle((x, y, x + cell, y + 5 * cell), fill=BLUE)
+    # top-right: green, with a circle (a counter)
+    x0, y0, x1, y1 = cell(1, 0)
+    d.rounded_rectangle((x0, y0, x1, y1), radius=r, fill=GREEN)
+    rr = tile * 0.22
+    cx, cy = x0 + tile / 2, y0 + tile / 2
+    d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), outline="#FFFDF6", width=int(tile * 0.09))
 
-    # centre
-    cx, cy = C(7.5, 7.5)
-    x0, y0 = C(6, 6); x1, y1 = C(9, 9)
-    d.polygon([(cx, cy), (x0, y0), (x0, y1)], fill=RED)
-    d.polygon([(cx, cy), (x0, y0), (x1, y0)], fill=GREEN)
-    d.polygon([(cx, cy), (x1, y0), (x1, y1)], fill=YELLOW)
-    d.polygon([(cx, cy), (x0, y1), (x1, y1)], fill=BLUE)
+    # bottom-left: blue, with a triangle
+    x0, y0, x1, y1 = cell(0, 1)
+    d.rounded_rectangle((x0, y0, x1, y1), radius=r, fill=BLUE)
+    d.polygon([
+        (x0 + tile * 0.50, y0 + tile * 0.26),
+        (x0 + tile * 0.76, y0 + tile * 0.72),
+        (x0 + tile * 0.24, y0 + tile * 0.72),
+    ], fill="#FFFDF6")
+
+    # bottom-right: yellow, with a star
+    x0, y0, x1, y1 = cell(1, 1)
+    d.rounded_rectangle((x0, y0, x1, y1), radius=r, fill=YELLOW)
+    star(d, x0 + tile / 2, y0 + tile / 2, tile * 0.30, "#FFFDF6")
 
     return img.resize((size, size), Image.LANCZOS)
 
-board(192).save("icons/icon-192.png")
-board(512).save("icons/icon-512.png")
-board(180, bg=CREAM).save("icons/apple-touch-icon.png")
-# maskable: extra padding so the safe zone survives circular masks
-board(512, pad_ratio=0.19, radius_ratio=0.0).save("icons/icon-maskable-512.png")
+
+def star(d, cx, cy, r, fill):
+    from math import cos, sin, pi
+    pts = []
+    for i in range(10):
+        rad = r if i % 2 == 0 else r * 0.45
+        a = pi / 5 * i - pi / 2
+        pts.append((cx + cos(a) * rad, cy + sin(a) * rad))
+    d.polygon(pts, fill=fill)
+
+
+icon(192).save("icons/icon-192.png")
+icon(512).save("icons/icon-512.png")
+icon(180).save("icons/apple-touch-icon.png")
+# maskable: extra padding, no rounding — the platform crops its own shape
+icon(512, pad_ratio=0.20, radius_ratio=0.0).save("icons/icon-maskable-512.png")
 print("icons written")

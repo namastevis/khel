@@ -1,14 +1,15 @@
 {
-  "name": "ludo-land",
+  "name": "khel",
   "version": "1.0.0",
   "private": true,
-  "description": "A friendly, ad-free Ludo PWA for children.",
+  "description": "A small shelf of ad-free games for children.",
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 8000",
     "test": "node test/simulate.mjs 3000",
     "test:browser": "node test/browser.mjs",
-    "test:install": "node test/install.mjs"
+    "test:install": "node test/install.mjs",
+    "icons": "python3 tools/make-icons.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

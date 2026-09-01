@@ -1,107 +1,135 @@
-/* Drives the real game in a headless browser: plays a quick game to the
-   end, watches for console errors, and saves screenshots.
+/* Drives the real thing in a headless browser: the shelf, opening a
+   game, playing it, and coming back out again — watching for console
+   errors and leaked listeners the whole way.
    Run with:  node test/browser.mjs                                     */
 
-import { chromium } from 'playwright';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import pkg from 'playwright';
+const { chromium } = pkg;
+import { serve } from './serve.mjs';
 
-const ROOT = new URL('..', import.meta.url).pathname;
 const PORT = 8123;
-const TYPES = {
-  '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
-  '.mjs': 'text/javascript', '.png': 'image/png',
-  '.webmanifest': 'application/manifest+json', '.json': 'application/json',
-};
-
-const server = createServer(async (req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]);
-  if (p === '/') p = '/index.html';
-  try {
-    const file = join(ROOT, normalize(p).replace(/^(\.\.[/\\])+/, ''));
-    const body = await readFile(file);
-    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream' });
-    res.end(body);
-  } catch {
-    res.writeHead(404); res.end('not found');
-  }
-});
-await new Promise((r) => server.listen(PORT, r));
-
+const server = await serve(PORT);
 const browser = await chromium.launch();
-const errors = [];
 
-async function session(name, viewport, run) {
+const errors = [];
+const results = [];
+const check = (label, pass) => results.push([label, pass]);
+
+async function open(name, viewport) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[${name}] ${e.message}`));
   await page.goto(`http://localhost:${PORT}/`);
   await page.waitForTimeout(400);
-  await run(page);
+  return { ctx, page };
+}
+
+/* ── the shelf, and getting in and out of a game ── */
+{
+  const { ctx, page } = await open('shelf', { width: 820, height: 1180 });
+
+  check('shelf lists Ludo', await page.isVisible('.game-card[data-id="ludo"]'));
+  await page.screenshot({ path: '/tmp/khel-shelf.png' });
+
+  await page.click('.game-card[data-id="ludo"]');
+  await page.waitForTimeout(600);
+  check('tapping the card routes to #/ludo', page.url().endsWith('#/ludo'));
+  check('the game mounted', await page.evaluate(() => KHEL.active === 'ludo'));
+  check('Ludo\'s setup screen is up', await page.isVisible('[data-screen="setup"]'));
+  await page.screenshot({ path: '/tmp/khel-ludo-setup.png' });
+
+  await page.click('[data-el="back"]');
+  await page.waitForTimeout(400);
+  check('“All games” returns to the shelf', await page.isVisible('#screen-shelf.is-active'));
+  check('the game unmounted', await page.evaluate(() => KHEL.active === null));
+  check('nothing left in the host', await page.evaluate(() => !document.getElementById('game-host').firstChild));
+  check('the game\'s globals are gone', await page.evaluate(() => typeof LUDO === 'undefined'));
+
+  // a direct link straight into the game must work too
+  await page.goto(`http://localhost:${PORT}/#/ludo`);
+  await page.waitForTimeout(700);
+  check('deep link #/ludo opens the game', await page.evaluate(() => KHEL.active === 'ludo'));
+
+  // and an unknown one must fall back to the shelf rather than break
+  await page.goto(`http://localhost:${PORT}/#/nosuchgame`);
+  await page.waitForTimeout(500);
+  check('unknown route falls back to the shelf', await page.isVisible('#screen-shelf.is-active'));
+
   await ctx.close();
 }
 
-/* ── menu, portrait tablet ── */
-await session('menu', { width: 820, height: 1180 }, async (page) => {
-  await page.screenshot({ path: '/tmp/shot-menu.png' });
-});
+/* ── actually play, four players, portrait ── */
+{
+  const { ctx, page } = await open('play', { width: 820, height: 1180 });
+  await page.click('.game-card[data-id="ludo"]');
+  await page.waitForTimeout(600);
 
-/* ── a full 4-player game, driven fast ── */
-await session('game-4p', { width: 820, height: 1180 }, async (page) => {
   await page.evaluate(() => {
     Object.assign(LUDO.seats, { red: 'human', green: 'cpu', yellow: 'cpu', blue: 'cpu' });
+    LUDO.refreshSeats();
     LUDO.start();
   });
-  await page.waitForTimeout(1200);
-  await page.screenshot({ path: '/tmp/shot-board-portrait.png' });
+  await page.waitForTimeout(1400);
+  check('the board is showing', await page.isVisible('[data-screen="board"]'));
+  await page.screenshot({ path: '/tmp/khel-board.png' });
 
-  // play until somebody wins, tapping the dice and any glowing piece
-  const deadline = Date.now() + 100000;
+  const before = await page.evaluate(() => LUDO.game.state.players.flatMap((p) => p.tokens).join(','));
+
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
-    const done = await page.evaluate(() => !!LUDO.game.state?.winner);
-    if (done) break;
+    if (await page.evaluate(() => !!LUDO.game.state?.winner)) break;
     const phase = await page.evaluate(() => LUDO.game.state?.phase);
     if (phase === 'roll') {
-      await page.click('#dice', { force: true }).catch(() => {});
+      await page.click('[data-el="dice"]', { force: true }).catch(() => {});
     } else if (phase === 'pick') {
-      // tap the first movable piece by asking the page where it is
       const pt = await page.evaluate(() => {
         const g = LUDO.game.state;
-        const c = document.getElementById('board').getBoundingClientRect();
-        const mod = LUDO.geom;
+        const r = document.querySelector('[data-el="board"]').getBoundingClientRect();
         const me = g.players[g.turn];
-        const ti = LUDO.pickable[0];
-        const [gx, gy] = mod.cellOf(me.color, me.tokens[ti], (me.tokens[ti] === -1 || me.tokens[ti] === 56) ? ti : 0);
-        return { x: c.left + (gx / 15) * c.width, y: c.top + (gy / 15) * c.height };
+        const ti = LUDO.game.pickable[0];
+        const t = me.tokens[ti];
+        const [gx, gy] = LUDO.geom.cellOf(me.color, t, (t === -1 || t === 56) ? ti : 0);
+        return { x: r.left + (gx / 15) * r.width, y: r.top + (gy / 15) * r.height };
       }).catch(() => null);
       if (pt) await page.mouse.click(pt.x, pt.y);
     }
-    await page.waitForTimeout(120);
+    await page.waitForTimeout(110);
   }
 
-  const state = await page.evaluate(() => {
-    const g = LUDO.game.state;
-    return { winner: g?.winner, tokens: g?.players.map((p) => [p.color, ...p.tokens]) };
-  });
-  console.log('4-player game result:', JSON.stringify(state));
-  await page.waitForTimeout(900);
-  await page.screenshot({ path: '/tmp/shot-win.png' });
-});
+  const after = await page.evaluate(() => LUDO.game.state.players.flatMap((p) => p.tokens).join(','));
+  check('pieces actually moved around the board', before !== after);
 
-/* ── landscape phone-ish ── */
-await session('landscape', { width: 1180, height: 760 }, async (page) => {
-  await page.evaluate(() => {
-    Object.assign(LUDO.seats, { red: 'human', green: 'cpu', yellow: 'off', blue: 'off' });
-    LUDO.start();
-  });
-  await page.waitForTimeout(2500);
-  await page.screenshot({ path: '/tmp/shot-board-landscape.png' });
-});
+  // leaving mid-game must stop everything cleanly
+  await page.click('[data-el="quit"]');
+  await page.waitForTimeout(500);
+  check('the house button returns to the shelf', await page.isVisible('#screen-shelf.is-active'));
+  check('no game left running', await page.evaluate(() => KHEL.active === null));
+
+  await ctx.close();
+}
+
+/* ── landscape ── */
+{
+  const { ctx, page } = await open('landscape', { width: 1180, height: 760 });
+  await page.goto(`http://localhost:${PORT}/#/ludo`);
+  await page.waitForTimeout(700);
+  await page.evaluate(() => LUDO.start());
+  await page.waitForTimeout(2200);
+  check('landscape board renders', await page.isVisible('[data-el="board"]'));
+  await page.screenshot({ path: '/tmp/khel-landscape.png' });
+  await ctx.close();
+}
 
 await browser.close();
 server.close();
 
-if (errors.length) { console.error('\n❌ console errors:\n' + errors.join('\n')); process.exit(1); }
-console.log('\n✅ no console errors');
+let failed = 0;
+for (const [label, pass] of results) {
+  if (!pass) failed++;
+  console.log(`${pass ? '  ✓' : '  ✗'} ${label}`);
+}
+if (errors.length) console.error('\nconsole errors:\n' + errors.join('\n'));
+const ok = failed === 0 && errors.length === 0;
+console.log(ok ? '\n✅ shell and game behave' : `\n❌ ${failed} failed`);
+process.exit(ok ? 0 : 1);

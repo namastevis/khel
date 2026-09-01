@@ -1,7 +1,7 @@
 {
-  "name": "Ludo Land",
-  "short_name": "Ludo",
-  "description": "A friendly, ad-free Ludo game for children. Works offline.",
+  "name": "Khel — games for small people",
+  "short_name": "Khel",
+  "description": "A small shelf of ad-free games for children. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -13,5 +13,13 @@
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ludo",
+      "short_name": "Ludo",
+      "url": "./#/ludo",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>Ludo Land</title>
-<meta name="description" content="A friendly, ad-free Ludo game for children. Works offline." />
+<title>Khel</title>
+<meta name="description" content="A small shelf of ad-free games for children. Works offline." />
 <meta name="theme-color" content="#FFF6E5" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="icons/icon-192.png" />
@@ -12,17 +12,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Ludo Land" />
+<meta name="apple-mobile-web-app-title" content="Khel" />
 <link rel="stylesheet" href="app.css" />
 </head>
 <body>
 
-<!-- ══════════════ MENU ══════════════ -->
-<section id="screen-menu" class="screen is-active">
-  <div class="menu-wrap">
+<!-- ══════════════ THE SHELF ══════════════ -->
+<section id="screen-shelf" class="screen is-active">
+  <div class="shelf-wrap">
     <h1 class="logo">
-      <span class="logo-l" style="--c:var(--red)">L</span><span class="logo-l" style="--c:var(--green)">u</span><span class="logo-l" style="--c:var(--yellow)">d</span><span class="logo-l" style="--c:var(--blue)">o</span>
-      <em>Land</em>
+      <span class="logo-l" style="--c:var(--red)">K</span><span class="logo-l" style="--c:var(--green)">h</span><span class="logo-l" style="--c:var(--yellow)">e</span><span class="logo-l" style="--c:var(--blue)">l</span>
     </h1>
     <p class="tagline">No ads. No internet needed. Just play.</p>
 
@@ -37,90 +36,41 @@
       <button id="btn-install-x" class="install-x" aria-label="Not now">&times;</button>
     </div>
 
-    <p class="setup-hint">Tap a colour to change who plays</p>
+    <div class="shelf" id="shelf"></div>
 
-    <div class="seats" id="seats"></div>
-
-    <button id="btn-play" class="big-btn">Play</button>
-
-    <div class="menu-foot">
-      <button id="btn-quick" class="ghost-btn">Just me vs the computer</button>
-      <button id="btn-how" class="ghost-btn">How to play</button>
+    <div class="shelf-foot">
+      <button id="btn-sound" class="icon-btn" aria-label="Sound on or off">&#128266;</button>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ GAME ══════════════ -->
+<!-- ══════════════ WHERE A GAME LIVES ══════════════ -->
 <section id="screen-game" class="screen">
-  <div class="stage">
-    <div class="board-holder">
-      <canvas id="board" aria-label="Ludo board"></canvas>
-    </div>
-
-    <aside class="panel">
-      <div class="turn-card" id="turn-card">
-        <span class="turn-dot" id="turn-dot"></span>
-        <span class="turn-name" id="turn-name">Red</span>
-      </div>
-
-      <button id="dice" class="dice" aria-label="Roll the dice">
-        <svg viewBox="0 0 100 100" id="dice-face"></svg>
-      </button>
-
-      <p class="hint" id="hint">Tap the dice!</p>
-
-      <div class="panel-foot">
-        <button id="btn-sound" class="icon-btn" aria-label="Sound on or off">&#128266;</button>
-        <button id="btn-quit" class="icon-btn" aria-label="Back to menu">&#127968;</button>
-      </div>
-    </aside>
-  </div>
-
-  <div id="toast" class="toast"></div>
+  <div id="game-host"></div>
+  <div id="game-loading" class="loading" hidden>Loading&hellip;</div>
 </section>
 
-<!-- ══════════════ WIN ══════════════ -->
-<div id="win-overlay" class="overlay">
-  <canvas id="confetti"></canvas>
-  <div class="win-card">
-    <div class="win-crown">&#128081;</div>
-    <h2 id="win-title">Red wins!</h2>
-    <p id="win-sub">Well played!</p>
-    <button id="btn-again" class="big-btn">Play again</button>
-    <button id="btn-menu" class="ghost-btn">Change players</button>
+<!-- ══════════════ iOS: point at Safari's share button ══════════════ -->
+<div id="ios-overlay" class="coach" hidden>
+  <div class="coach-bubble">
+    <p class="coach-line">
+      Tap
+      <svg class="share-glyph" viewBox="0 0 24 24" aria-label="the Share button">
+        <path d="M7 10.5h-.5A1.5 1.5 0 0 0 5 12v7.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5H17"
+              fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+        <path d="M12 14.5V3.5M8.4 7.1 12 3.5l3.6 3.6"
+              fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      then <b>Add to Home&nbsp;Screen</b>
+    </p>
+    <p class="coach-sub">Tap anywhere to close</p>
   </div>
+  <svg class="coach-arrow" viewBox="0 0 40 60" aria-hidden="true">
+    <path d="M20 4v46M8 38l12 12 12-12" fill="none" stroke="currentColor"
+          stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
 </div>
 
-<!-- ══════════════ iOS INSTALL STEPS ══════════════ -->
-<div id="ios-overlay" class="overlay">
-  <div class="help-card">
-    <h2>Put it on the Home Screen</h2>
-    <p class="ios-note">Safari can keep this like a real app &mdash; full screen, and it works with no internet.</p>
-    <ol>
-      <li>Tap the <b>Share</b> button <span class="ios-glyph" aria-hidden="true">&#9053;</span> at the bottom of Safari (or top right on an iPad).</li>
-      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
-      <li>Tap <b>Add</b>. The Ludo board icon appears with your other apps.</li>
-    </ol>
-    <button id="btn-ios-close" class="big-btn">Got it</button>
-  </div>
-</div>
-
-<!-- ══════════════ HOW TO PLAY ══════════════ -->
-<div id="help-overlay" class="overlay">
-  <div class="help-card">
-    <h2>How to play</h2>
-    <ol>
-      <li><b>Tap the dice</b> when it is your turn.</li>
-      <li>You need a <b>6</b> to bring a piece out of its house.</li>
-      <li>Tap a <b>glowing piece</b> to move it. If only one piece can move, it moves by itself.</li>
-      <li>Land on someone else's piece and it goes <b>back home</b> &mdash; unless it is standing on a <b>star</b>.</li>
-      <li>Roll a <b>6</b>, send someone home, or get a piece home &mdash; you get <b>another turn</b>.</li>
-      <li>Get all <b>4 pieces</b> to the middle to win. You need the exact number to finish!</li>
-    </ol>
-    <button id="btn-help-close" class="big-btn">Got it</button>
-  </div>
-</div>
-
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/shell.js"></script>
 </body>
 </html>

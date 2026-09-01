@@ -1,33 +1,15 @@
-/* Checks the "Add to Home Screen" flow on the landing page:
+/* Checks the "Add to Home Screen" offer on the shelf:
      · Android / desktop  → replays the browser's own install prompt
-     · iOS Safari         → shows the share-sheet steps instead
+     · iOS Safari         → points at Safari's own Share button
      · already installed  → the bar never appears at all
    Run with:  node test/install.mjs                                    */
 
 import pkg from 'playwright';
 const { chromium } = pkg;
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { serve } from './serve.mjs';
 
-const ROOT = new URL('..', import.meta.url).pathname;
 const PORT = 8126;
-const TYPES = {
-  '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
-  '.png': 'image/png', '.webmanifest': 'application/manifest+json',
-};
-
-const server = createServer(async (req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]);
-  if (p === '/') p = '/index.html';
-  try {
-    const file = join(ROOT, normalize(p).replace(/^(\.\.[/\\])+/, ''));
-    const body = await readFile(file);
-    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream' });
-    res.end(body);
-  } catch { res.writeHead(404); res.end('not found'); }
-});
-await new Promise((r) => server.listen(PORT, r));
+const server = await serve(PORT);
 
 const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 '
   + '(KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -48,7 +30,7 @@ const asInstalledElsewhere = () => {
 const browser = await chromium.launch();
 const errors = [];
 const results = [];
-const check = (label, pass) => { results.push([label, pass]); };
+const check = (label, pass) => results.push([label, pass]);
 
 async function open(name, { init, ua } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 820, height: 1180 }, ...(ua ? { userAgent: ua } : {}) });
@@ -75,10 +57,12 @@ const fireInstallPrompt = (page) => page.evaluate(() => {
   check('iOS: bar is offered', await page.isVisible('#install-bar'));
   await page.click('#btn-install');
   await page.waitForTimeout(250);
-  check('iOS: tapping it shows the Safari steps', await page.isVisible('#ios-overlay'));
-  await page.click('#btn-ios-close');
+  check('iOS: tapping it points at the Share button', await page.isVisible('#ios-overlay'));
+  check('iOS: the pointer aims at the right edge of the screen',
+    await page.evaluate(() => document.getElementById('ios-overlay').classList.contains('at-top')));
+  await page.click('#ios-overlay', { position: { x: 40, y: 500 } });
   await page.waitForTimeout(150);
-  check('iOS: steps close again', !(await page.isVisible('#ios-overlay')));
+  check('iOS: any tap closes it', !(await page.isVisible('#ios-overlay')));
   await page.click('#btn-install-x');
   await page.waitForTimeout(150);
   check('iOS: dismissing hides the bar', !(await page.isVisible('#install-bar')));
@@ -99,7 +83,7 @@ const fireInstallPrompt = (page) => page.evaluate(() => {
   await page.waitForTimeout(250);
   check('desktop: the native prompt is called', await page.evaluate(() => !!window.__prompted));
   check('desktop: bar goes away once accepted', !(await page.isVisible('#install-bar')));
-  check('desktop: iOS steps never shown here', !(await page.isVisible('#ios-overlay')));
+  check('desktop: no iOS pointer here', !(await page.isVisible('#ios-overlay')));
   await ctx.close();
 }
 
@@ -124,5 +108,6 @@ for (const [label, pass] of results) {
   console.log(`${pass ? '  ✓' : '  ✗'} ${label}`);
 }
 if (errors.length) console.error('\nconsole errors:\n' + errors.join('\n'));
-console.log(failed === 0 && errors.length === 0 ? '\n✅ install flow is correct' : `\n❌ ${failed} failed`);
-process.exit(failed === 0 && errors.length === 0 ? 0 : 1);
+const ok = failed === 0 && errors.length === 0;
+console.log(ok ? '\n✅ install flow is correct' : `\n❌ ${failed} failed`);
+process.exit(ok ? 0 : 1);
