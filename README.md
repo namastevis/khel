@@ -1,6 +1,9 @@
 # Khel
 
-A small shelf of ad-free games for children, built for a five-year-old.
+Games made to be played together, round one tablet — or on your own against the
+computer when nobody else is about.
+
+Every game on my niece's tablet was stuffed with ads, so I built her ones that aren't.
 
 No ads, no tracking, no in-app purchases, no accounts, no network calls at all.
 Installs to the home screen on an iPad, an Android tablet, or a laptop, and works
@@ -12,7 +15,7 @@ completely offline.
 
 | Game | | |
 |---|---|---|
-| **Ludo** | Race your four pieces home | 1–4 players, same device |
+| **Ludo** | Race your four pieces home | 2–4 round one tablet, or one vs the computer |
 
 More to come. Snakes & Ladders is the natural next one — it reuses the dice, the
 square-by-square hop, and the turn loop almost wholesale.
@@ -22,13 +25,17 @@ square-by-square hop, and the turn loop almost wholesale.
 - **Classic rules** — a 6 to leave the house, 52-square loop, safe stars, captures,
   the exact roll needed to finish, extra turns for a 6 / a capture / a piece reaching
   home, and three sixes forfeits the turn.
-- **Auto-move** when only one piece can legally move, so a small player never has to
-  hunt for the one legal tap.
+- **Auto-move** when only one piece can legally move, so nobody has to hunt for
+  the one legal tap.
 - **1–4 players on one device**, in any mix of people and computer opponents.
+- **Name the players** — the setup screen is a table of people, not colours. Tap a
+  piece to swap a seat between a person, the computer and nobody; tap a name to change
+  it. Names are remembered on that device, so the board says *Chueen's turn*, and the
+  win card says *Mama wins!*. Defaults live in `DEFAULT_NAMES` in `games/ludo/index.js`.
 - **Built for touch** — big pieces, big dice, portrait and landscape.
 
 The computer opponents play sensibly but not ruthlessly: they take a merely-fine move
-about a quarter of the time so that a child wins often enough to keep playing.
+about a quarter of the time, so the newest player at the table still wins often enough.
 
 ## Running it locally
 
@@ -66,7 +73,7 @@ js/audio.js           sounds, generated in the browser; no audio files
 js/toast.js           the shared message at the top of the screen
 games/ludo/           one folder per game
 sw.js                 offline cache — lists every file
-tools/make-icons.py   redraws the app icons
+tools/make-icons.py   redraws the app icons and the link-preview card
 ```
 
 Routing is by hash (`#/ludo`) so the whole thing stays one page: no server config, it
@@ -111,14 +118,17 @@ The shelf offers this itself, and only when it is worth offering:
 - **Already installed** — `display-mode: standalone` (or `navigator.standalone` on iOS)
   is true, so the bar never appears at all.
 
-Dismissing it is remembered, but only for a week, so one stray tap by a child doesn't
-hide it for good.
+Dismissing it is remembered, but only for a week, so one stray tap doesn't hide it for
+good.
 
 ## Deploying
 
 A plain static site, so GitHub Pages serves it straight from `main`:
 
 **Settings → Pages → Source: Deploy from a branch → `main` / `(root)`**
+
+`icons/share-card.png` is what shows when the link is pasted into a chat; the Open
+Graph tags in `index.html` point at it. Rerun `npm run icons` if you change the wording.
 
 After any change, bump `CACHE` in `sw.js` (`khel-v1` → `v2`, …) or tablets that already
 installed the app will keep serving the version they have.

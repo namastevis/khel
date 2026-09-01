@@ -11,7 +11,7 @@ export const GAMES = [
     id: 'ludo',
     title: 'Ludo',
     blurb: 'Race your four pieces home',
-    players: '1–4 players · same device',
+    players: '2–4 round one tablet · or one vs the computer',
     accent: 'var(--red)',
     art: ludoArt,
   },

@@ -27,7 +27,17 @@
   color: var(--red);
   text-shadow: 0 4px 0 rgba(67,51,31,.16);
 }
-.setup-hint { margin: 0; color: var(--ink-soft); font-size: clamp(13px, 3vmin, 17px); }
+.setup-who {
+  margin: 0;
+  font-size: clamp(18px, 4.4vmin, 26px);
+  font-weight: 800;
+}
+.setup-hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: clamp(12px, 2.8vmin, 15px);
+  max-width: 44ch;
+}
 
 .seats {
   display: grid;
@@ -37,24 +47,56 @@
 }
 
 .seat {
-  border: none;
   border-radius: var(--radius);
-  padding: clamp(10px, 2.4vmin, 18px) 4px;
+  padding: clamp(10px, 2.4vmin, 18px) 6px;
   background: var(--white);
   box-shadow: var(--shadow);
-  font-family: inherit;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  transition: transform .12s ease, opacity .2s ease;
+  transition: opacity .2s ease;
+  min-width: 0;
 }
-.seat:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
-.seat svg { width: clamp(34px, 8vmin, 54px); height: clamp(34px, 8vmin, 54px); }
-.seat .who { font-size: clamp(12px, 2.7vmin, 16px); font-weight: 700; color: var(--ink); }
 .seat[data-state="off"] { opacity: .38; }
-.seat[data-state="off"] .who { color: var(--ink-soft); }
+
+/* the pawn is the switch: person → computer → not playing */
+.seat-pawn {
+  border: none; background: transparent; padding: 0;
+  cursor: pointer; line-height: 0;
+  transition: transform .12s ease;
+}
+.seat-pawn:active { transform: translateY(3px) scale(.96); }
+.seat-pawn svg { width: clamp(34px, 8vmin, 54px); height: clamp(34px, 8vmin, 54px); }
+
+/* the name is the other half: only a person gets one */
+.seat-name,
+.seat-fixed {
+  width: 100%;
+  text-align: center;
+  font-family: inherit;
+  font-size: clamp(12px, 2.7vmin, 16px);
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 0;
+}
+.seat-name {
+  border: none;
+  border-bottom: 2px dotted var(--yellow);   /* quietly says "you can change this" */
+  background: transparent;
+  border-radius: 4px;
+  padding: 3px 2px;
+  cursor: text;
+}
+.seat-name:focus {
+  outline: none;
+  border-bottom-style: solid;
+  background: rgba(255,197,49,.16);
+}
+.seat-fixed { color: var(--ink-soft); padding: 5px 2px; }
+
+.seat[data-state="human"] .seat-fixed { display: none; }
+.seat:not([data-state="human"]) .seat-name { display: none; }
 
 .setup-foot { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
 

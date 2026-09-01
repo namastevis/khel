@@ -39,6 +39,45 @@ async function open(name, viewport) {
   check('Ludo\'s setup screen is up', await page.isVisible('[data-screen="setup"]'));
   await page.screenshot({ path: '/tmp/khel-ludo-setup.png' });
 
+  // the table is named people, not colours
+  const shown = await page.$$eval('.seat', (cards) => cards.map((c) => ({
+    state: c.dataset.state,
+    name: c.querySelector('[data-role="name"]').value,
+    fixed: c.querySelector('[data-role="fixed"]').textContent,
+  })));
+  check('seats start with family names', shown.map((s) => s.name).join(',') === 'Chueen,Mama,Papa,Dada');
+  check('it starts set up for two people, not one',
+    shown.filter((s) => s.state === 'human').length === 2);
+  check('a person\'s name is editable', await page.isVisible('.seat[data-state="human"] [data-role="name"]'));
+  check('an empty seat has no name to edit', !(await page.isVisible('.seat[data-state="off"] [data-role="name"]')));
+
+  // rename someone, and check it reaches the board
+  await page.fill('.seat[data-color="red"] [data-role="name"]', 'Nani');
+  await page.click('[data-el="play"]');
+  await page.waitForTimeout(900);
+  check('the renamed player is announced on the board',
+    (await page.textContent('[data-el="turnName"]')) === 'Nani');
+
+  await page.click('[data-el="quit"]');
+  await page.waitForTimeout(400);
+  await page.goto(`http://localhost:${PORT}/#/ludo`);
+  await page.waitForTimeout(700);
+  check('the new name is remembered next time',
+    (await page.inputValue('.seat[data-color="red"] [data-role="name"]')) === 'Nani');
+  await page.fill('.seat[data-color="red"] [data-role="name"]', 'Chueen');
+  await page.waitForTimeout(100);
+
+  // tapping the pawn cycles the seat: person → computer → nobody
+  await page.click('.seat[data-color="red"] [data-role="cycle"]');
+  await page.waitForTimeout(150);
+  check('tapping a piece hands the seat to the computer',
+    (await page.getAttribute('.seat[data-color="red"]', 'data-state')) === 'cpu');
+  await page.click('.seat[data-color="red"] [data-role="cycle"]');
+  await page.click('.seat[data-color="red"] [data-role="cycle"]');
+  await page.waitForTimeout(150);
+  check('and back round to a person again',
+    (await page.getAttribute('.seat[data-color="red"]', 'data-state')) === 'human');
+
   await page.click('[data-el="back"]');
   await page.waitForTimeout(400);
   check('“All games” returns to the shelf', await page.isVisible('#screen-shelf.is-active'));

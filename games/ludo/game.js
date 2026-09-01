@@ -259,11 +259,11 @@ export function createController(root, el) {
 
   /* ── public API ────────────────────────────────────────── */
   return {
-    start(seats) {
+    start(seats, names) {
       gen++;
       stopConfetti?.(); stopConfetti = null;
       el('winOverlay').classList.remove('is-active');
-      g = createGame(seats);
+      g = createGame(seats, names);
       moving = null; highlight = [];
       running = true;
       requestAnimationFrame(frame);

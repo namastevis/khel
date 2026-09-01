@@ -13,14 +13,19 @@
 
 import { ORDER, COLORS, CPU_NAMES, HOME_REL, TRACK_END, absIndex, isSafeRel } from './config.js';
 
-export function createGame(seats) {
-  // seats: { red: 'human'|'cpu'|'off', … }
+/**
+ * @param seats { red: 'human'|'cpu'|'off', … }
+ * @param names { red: 'Chueen', … } — what a human player calls themselves
+ */
+export function createGame(seats, names = {}) {
   const players = ORDER
     .filter((c) => seats[c] && seats[c] !== 'off')
     .map((color) => ({
       color,
       kind: seats[color],
-      label: seats[color] === 'cpu' ? CPU_NAMES[color] : COLORS[color].name,
+      label: seats[color] === 'cpu'
+        ? CPU_NAMES[color]
+        : (names[color]?.trim() || COLORS[color].name),
       tokens: [-1, -1, -1, -1],
     }));
 

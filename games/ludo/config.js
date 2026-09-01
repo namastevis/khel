@@ -27,7 +27,7 @@ export const COLORS = {
   blue:   { main: '#4A9BE8', dark: '#2E76B8', light: '#D3E8FB', name: 'Blue' },
 };
 
-/* Friendly names shown to a child instead of "Player 2" */
+/* Friendlier than "Player 2" when a seat is taken by the computer */
 export const CPU_NAMES = {
   red: 'Robo Red', green: 'Go-Go Green', yellow: 'Sunny Yellow', blue: 'Bubbly Blue',
 };

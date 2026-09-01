@@ -4,8 +4,18 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Khel</title>
-<meta name="description" content="A small shelf of ad-free games for children. Works offline." />
+<meta name="description" content="Games made to be played together, round one tablet. No ads, no tracking, no sign-in — and it works with no internet at all." />
 <meta name="theme-color" content="#FFF6E5" />
+
+<!-- how the link looks when it lands in a chat -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Khel — games for family and friends" />
+<meta property="og:description" content="Games made to be played together, round one tablet — or on your own against the computer. No ads, no tracking, no sign-in, and no internet needed." />
+<meta property="og:url" content="https://namastevis.github.io/khel/" />
+<meta property="og:image" content="https://namastevis.github.io/khel/icons/share-card.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -23,7 +33,7 @@
     <h1 class="logo">
       <span class="logo-l" style="--c:var(--red)">K</span><span class="logo-l" style="--c:var(--green)">h</span><span class="logo-l" style="--c:var(--yellow)">e</span><span class="logo-l" style="--c:var(--blue)">l</span>
     </h1>
-    <p class="tagline">No ads. No internet needed. Just play.</p>
+    <p class="tagline">Made to be played together. No ads, no sign-in, no internet needed.</p>
 
     <div id="install-bar" class="install-bar" hidden>
       <button id="btn-install" class="install-btn">
@@ -37,6 +47,8 @@
     </div>
 
     <div class="shelf" id="shelf"></div>
+
+    <p class="dedication">Made for Chueen &mdash; because every other game on her tablet was stuffed with ads.</p>
 
     <div class="shelf-foot">
       <button id="btn-sound" class="icon-btn" aria-label="Sound on or off">&#128266;</button>

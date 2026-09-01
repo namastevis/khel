@@ -6,7 +6,7 @@
    created here and torn down again in unmount().
    ═══════════════════════════════════════════════════════════════ */
 
-import { ORDER, COLORS, cellOf } from './config.js';
+import { ORDER, COLORS, CPU_NAMES, cellOf } from './config.js';
 import { createController } from './game.js';
 import { sfx, unlock } from '../../js/audio.js';
 
@@ -19,14 +19,15 @@ const TEMPLATE = `
   <section class="ludo-screen is-active" data-screen="setup">
     <div class="setup-wrap">
       <h2 class="game-name">Ludo</h2>
-      <p class="setup-hint">Tap a colour to change who plays</p>
+      <p class="setup-who">Who's playing?</p>
+      <p class="setup-hint">Tap a piece to swap between a person, the computer, and nobody &middot; tap a name to change it</p>
 
       <div class="seats" data-el="seats"></div>
 
       <button class="big-btn" data-el="play">Play</button>
 
       <div class="setup-foot">
-        <button class="ghost-btn" data-el="quick">Just me vs the computer</button>
+        <button class="ghost-btn" data-el="quick">Playing on my own</button>
         <button class="ghost-btn" data-el="how">How to play</button>
         <button class="ghost-btn" data-el="back">&larr; All games</button>
       </div>
@@ -91,6 +92,11 @@ const TEMPLATE = `
 
 const CYCLE = { human: 'cpu', cpu: 'off', off: 'human' };
 
+/* Who's usually round the table. Every one of these is editable on the
+   setup screen, and the edits are remembered on that device — this is
+   only what a fresh tablet starts with. */
+const DEFAULT_NAMES = { red: 'Chueen', green: 'Mama', yellow: 'Papa', blue: 'Dada' };
+
 function pawnSVG(color) {
   const c = COLORS[color];
   return `<svg viewBox="0 0 100 100" aria-hidden="true">
@@ -108,29 +114,53 @@ export function mount(host, shell) {
   const screen = (name) => root.querySelector(`[data-screen="${name}"]`);
 
   /* ── who is playing ── */
-  const seats = { red: 'human', green: 'cpu', yellow: 'off', blue: 'off' };
-  try {
-    const saved = JSON.parse(localStorage.getItem('khel.ludo.seats') || 'null');
-    if (saved && ORDER.every((c) => ['human', 'cpu', 'off'].includes(saved[c]))) Object.assign(seats, saved);
-  } catch { /* ignore */ }
+  const seats = { red: 'human', green: 'human', yellow: 'off', blue: 'off' };
+  const names = { ...DEFAULT_NAMES };
 
-  /* The card stays short so it never wraps; the computer's full name
-     ("Robo Red") shows on the board, where there is room for it. */
-  const seatLabel = (color) =>
-    seats[color] === 'off' ? 'Not playing'
-      : `${seats[color] === 'human' ? '🙂' : '🤖'} ${COLORS[color].name}`;
+  const load = (key, into, valid) => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || 'null');
+      if (saved && ORDER.every(valid(saved))) Object.assign(into, saved);
+    } catch { /* private mode, or something we didn't write */ }
+  };
+  load('khel.ludo.seats', seats, (s) => (c) => ['human', 'cpu', 'off'].includes(s[c]));
+  load('khel.ludo.names', names, (s) => (c) => typeof s[c] === 'string');
+
+  const save = () => {
+    try {
+      localStorage.setItem('khel.ludo.seats', JSON.stringify(seats));
+      localStorage.setItem('khel.ludo.names', JSON.stringify(names));
+    } catch { /* ignore */ }
+  };
+
+  // clearing a name shouldn't leave a nameless player at the table
+  const nameOf = (color) => names[color].trim() || DEFAULT_NAMES[color] || COLORS[color].name;
 
   el('seats').innerHTML = ORDER.map((color) => `
-    <button class="seat" data-color="${color}" data-state="${seats[color]}">
-      ${pawnSVG(color)}
-      <span class="who">${seatLabel(color)}</span>
-    </button>`).join('');
+    <div class="seat" data-color="${color}" data-state="${seats[color]}">
+      <button class="seat-pawn" data-role="cycle" aria-label="Change who plays ${COLORS[color].name}">
+        ${pawnSVG(color)}
+      </button>
+      <input class="seat-name" data-role="name" maxlength="10" spellcheck="false"
+             autocapitalize="words" autocomplete="off" enterkeyhint="done"
+             aria-label="Name of the ${COLORS[color].name} player" value="${nameOf(color)}" />
+      <span class="seat-fixed" data-role="fixed"></span>
+    </div>`).join('');
 
   function refreshSeats() {
-    el('seats').querySelectorAll('.seat').forEach((btn) => {
-      const color = btn.dataset.color;
-      btn.dataset.state = seats[color];
-      btn.querySelector('.who').textContent = seatLabel(color);
+    el('seats').querySelectorAll('.seat').forEach((card) => {
+      const color = card.dataset.color;
+      card.dataset.state = seats[color];
+
+      const input = card.querySelector('[data-role="name"]');
+      const fixed = card.querySelector('[data-role="fixed"]');
+
+      // only a person gets to be called something
+      if (seats[color] === 'human') {
+        if (document.activeElement !== input) input.value = nameOf(color);
+      } else {
+        fixed.textContent = seats[color] === 'cpu' ? `🤖 ${CPU_NAMES[color]}` : 'Not playing';
+      }
     });
 
     const playing = ORDER.filter((c) => seats[c] !== 'off');
@@ -141,7 +171,7 @@ export function mount(host, shell) {
       ? (playing.length === 2 ? 'Play' : `Play with ${playing.length}`)
       : 'Pick 2 players';
 
-    try { localStorage.setItem('khel.ludo.seats', JSON.stringify(seats)); } catch { /* ignore */ }
+    save();
   }
 
   /* ── screens ── */
@@ -159,20 +189,37 @@ export function mount(host, shell) {
   function start() {
     unlock();
     showBoard();
-    game.start({ ...seats });
+    game.start({ ...seats }, { ...names });
   }
 
   /* ── wiring ── */
   const on = (name, ev, fn) => el(name).addEventListener(ev, fn);
 
-  el('seats').querySelectorAll('.seat').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      unlock();
-      seats[btn.dataset.color] = CYCLE[seats[btn.dataset.color]];
-      sfx.tap();
-      refreshSeats();
-    });
+  el('seats').addEventListener('click', (ev) => {
+    const pawn = ev.target.closest('[data-role="cycle"]');
+    if (!pawn) return;
+    const color = pawn.closest('.seat').dataset.color;
+    unlock();
+    seats[color] = CYCLE[seats[color]];
+    sfx.tap();
+    refreshSeats();
   });
+
+  el('seats').addEventListener('input', (ev) => {
+    const input = ev.target.closest('[data-role="name"]');
+    if (!input) return;
+    names[input.closest('.seat').dataset.color] = input.value;
+    save();
+  });
+
+  // typing a name and hitting return shouldn't leave the keyboard up
+  el('seats').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && ev.target.closest('[data-role="name"]')) ev.target.blur();
+  });
+
+  el('seats').addEventListener('blur', (ev) => {
+    if (ev.target.closest('[data-role="name"]')) refreshSeats();
+  }, true);
 
   on('play', 'click', start);
 
@@ -194,7 +241,7 @@ export function mount(host, shell) {
 
   on('again', 'click', () => {
     el('winOverlay').classList.remove('is-active');
-    game.start({ ...seats });
+    game.start({ ...seats }, { ...names });
   });
 
   on('changePlayers', 'click', () => {
@@ -207,7 +254,7 @@ export function mount(host, shell) {
   showSetup();
 
   /* for the automated tests */
-  globalThis.LUDO = { game, seats, start, refreshSeats, geom: { cellOf } };
+  globalThis.LUDO = { game, seats, names, start, refreshSeats, geom: { cellOf } };
 
   return function unmount() {
     game.destroy();

@@ -75,3 +75,49 @@ icon(180).save("icons/apple-touch-icon.png")
 # maskable: extra padding, no rounding — the platform crops its own shape
 icon(512, pad_ratio=0.20, radius_ratio=0.0).save("icons/icon-maskable-512.png")
 print("icons written")
+
+
+# ── the card that shows when the link is pasted into a chat ──────────
+
+def share_card(w=1200, h=630):
+    S = 2                                          # supersample
+    img = Image.new("RGB", (w * S, h * S), CREAM)
+    d = ImageDraw.Draw(img)
+
+    # the four colours as a soft band down the right
+    band = int(w * S * 0.055)
+    for i, c in enumerate((RED, GREEN, YELLOW, BLUE)):
+        y0 = h * S * i / 4
+        d.rectangle((w * S - band, y0, w * S, y0 + h * S / 4), fill=c)
+
+    tile = icon(int(260 * S), pad_ratio=0.0, radius_ratio=0.20)
+    img.paste(tile, (int(96 * S), int(180 * S)), tile)
+
+    x = int(410 * S)
+    d.text((x, int(196 * S)), "Khel", fill="#43331F", font=_font(int(112 * S)))
+    d.text((x, int(330 * S)), "Games made to be played together",
+           fill="#43331F", font=_font(int(40 * S)))
+    d.text((x, int(392 * S)), "No ads. No tracking. No sign-in.",
+           fill="#7A6A56", font=_font(int(32 * S)))
+    d.text((x, int(438 * S)), "Round one tablet, with no internet at all.",
+           fill="#7A6A56", font=_font(int(32 * S)))
+
+    return img.resize((w, h), Image.LANCZOS)
+
+
+def _font(size):
+    from PIL import ImageFont
+    for path in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    ):
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size)
+
+
+share_card().save("icons/share-card.png")
+print("share card written")

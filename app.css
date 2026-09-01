@@ -137,6 +137,14 @@ body {
 .game-card .card-blurb { color: var(--ink); font-size: clamp(13px, 3vmin, 16px); }
 .game-card .card-players { color: var(--ink-soft); font-size: clamp(11px, 2.6vmin, 14px); }
 
+.dedication {
+  margin: clamp(6px, 1.6vh, 14px) 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(12px, 2.8vmin, 15px);
+  max-width: 42ch;
+  line-height: 1.5;
+}
+
 .shelf-foot { display: flex; gap: 10px; margin-top: 2px; }
 
 /* ───────────── shared buttons ───────────── */
