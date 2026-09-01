@@ -178,6 +178,7 @@ export function mount(host, shell) {
 
   return function unmount() {
     game.destroy();
+    table.destroy();
     delete globalThis.LUDO;
   };
 }

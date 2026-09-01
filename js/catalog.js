@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
    catalog.js — what's on the shelf.
 
-   `note` is deliberately absent from both games: a line that says the
-   same thing on every card isn't telling anyone which game to pick.
+   `note` is deliberately absent from every game so far: a line that says
+   the same thing on every card isn't telling anyone which game to pick.
    Give a game a note only when it differs from the house rule of two
    to four people round one device — a solo puzzle, say.
 

@@ -88,6 +88,33 @@ const fireInstallPrompt = (page) => page.evaluate(() => {
   await page.reload();
   await page.waitForTimeout(350);
   check('iOS: it stays dismissed on the next visit', !(await page.isVisible('#install-bar')));
+
+  // …but dismissing must never be a one-way door
+  check('iOS: the quiet link is still there after dismissing',
+    await page.isVisible('#btn-install-mini'));
+  check('iOS: and it opens the same steps', await (async () => {
+    await page.click('#btn-install-mini');
+    await page.waitForTimeout(250);
+    return page.isVisible('#ios-overlay');
+  })());
+  await ctx.close();
+}
+
+/* ── iOS, having already been shown the steps once ──
+   Safari can't tell us the app is installed, so the banner backs off on
+   its own after the steps have been seen; the quiet link stays. */
+{
+  const { ctx, page } = await open('ios-again', {
+    ua: IPAD,
+    init: () => {
+      Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 });
+      try { localStorage.setItem('khel.installCoached', '1'); } catch { /* ignore */ }
+    },
+  });
+  check('iOS: the banner stops nagging once the steps have been shown',
+    !(await page.isVisible('#install-bar')));
+  check('iOS: but installing is still one tap away',
+    await page.isVisible('#btn-install-mini'));
   await ctx.close();
 }
 
@@ -115,6 +142,18 @@ for (const [name, init, ua] of [
   await fireInstallPrompt(page);          // even this must not resurrect it
   await page.waitForTimeout(200);
   check(`${name}: bar stays hidden`, !(await page.isVisible('#install-bar')));
+  check(`${name}: and so does the quiet link`, !(await page.isVisible('#btn-install-mini')));
+  await ctx.close();
+}
+
+/* ── 4. A browser that can't install at all ──
+   Firefox, or a desktop Chrome that already has the app: no event, not
+   iOS. Offering a route that would only show iPad instructions is worse
+   than offering nothing. */
+{
+  const { ctx, page } = await open('no-install-api');
+  check('no install API: neither route is offered',
+    !(await page.isVisible('#install-bar')) && !(await page.isVisible('#btn-install-mini')));
   await ctx.close();
 }
 

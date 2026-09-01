@@ -130,6 +130,8 @@ js/dice.js            one fair roll, and the pips that show it
 js/audio.js           sounds, generated in the browser; no audio files
 js/confetti.js        paper for the winner
 js/toast.js           the shared message at the top of the screen
+js/store.js           this device's memory — the only place anything is kept
+js/text.js            escaping names before they go into HTML
 games/ludo/           one folder per game
 games/snakes/
 games/memory/
@@ -185,12 +187,13 @@ card you lose to a glance rather than to memory. That is why there is no tomato 
 deck, and no moon beside the banana. One picture was drawn as a whale, kept reading as a
 fish, and is now called Fish — the spoken name has to match what she actually sees.
 
-**Naming what you found.** A matched pair puts its name on screen for a moment and says
-it aloud, using the speech synthesiser every browser already has, so there are no audio
-files and it works in aeroplane mode like everything else. It follows the sound button,
-and the word is on screen either way — a device with no voice loses nothing. Nothing is
-ever printed on a card face: reading before recognising is slower, and it would turn the
-game into homework.
+**Naming what you found.** A matched pair puts its name on screen, big, for a moment.
+It was also spoken aloud at first, using the browser's built-in speech synthesiser — a
+nice idea that lost on contact with play: the voice stutters and takes its own time, so
+there was a pause between finding a pair and carrying on, and a wait every single go is
+exactly the friction this game can't afford. The word on screen does the same job for
+free. Nothing is ever printed on a card face, though: reading before recognising is
+slower, and it would turn the game into homework.
 
 **Repetition.** Individual pictures recur, which is fine and rather the point. The
 *combination* doesn't: six from twenty-four is about 135,000 tables. And the layout is
@@ -203,6 +206,10 @@ somewhere else anyway. That is measured rather than guessed: against a player wh
 remembers nothing it wins about 70% of the time, and the simulation fails the build if
 that ever climbs past 85%.
 
+A round that ends level is called a draw and hands nobody a trophy — at the smaller
+sizes it happens about one round in five, which is far too often to quietly award it to
+whoever sat down first.
+
 There is no timer, and there won't be. It turns a calm game into a stressful one, and
 it's the one thing that would reliably make her lose to an adult.
 
@@ -210,7 +217,9 @@ The board is real DOM rather than canvas: a card is a button, the flip is a CSS
 transform the browser animates itself, and it works with a screen reader without being
 reinvented. `game.js` measures the space and lays the grid out whichever way up gives
 the bigger cards, so a phone held sideways and a tablet in portrait both get the largest
-board that fits, with no orientation special cases.
+board that fits, with no orientation special cases — then stops at a maximum card size,
+because six saucers across a laptop is harder to hold in your head than a board you can
+take in at a glance.
 
 ## Snakes & Ladders
 
@@ -249,8 +258,19 @@ The shelf offers this itself, and only when it is worth offering:
 - **Already installed** — `display-mode: standalone` (or `navigator.standalone` on iOS)
   is true, so the bar never appears at all.
 
-Dismissing it is remembered, but only for a week, so one stray tap doesn't hide it for
-good.
+Dismissing it hides the banner for a week — but there is also a small, permanent
+*Add to Home Screen* under the games, so saying "not now" never locks anyone out of
+saying yes later. That quiet link appears only where installing is actually possible:
+on iOS, or once a browser has told us it can install. A desktop Chrome that already has
+the app never says so, and correctly shows neither.
+
+iOS is the one place this can't be exact. Safari has no way to tell a page that the app
+is already on the home screen — `navigator.standalone` is true only *inside* the
+installed copy, and that copy keeps its own storage, so nothing it learns comes back to
+the Safari tab. Tapping "Add to Home Screen" a second time there would simply make a
+second icon. The best signal left is that the steps were shown at least once, so after
+that the banner stops opening by itself and only the quiet link remains — nagging
+someone who has already installed it is the worse of the two mistakes.
 
 ## Deploying
 

@@ -430,13 +430,16 @@ const alwaysRolls = (value) => ({
     return page.evaluate(async () => {
       const g = MEMORY.game.state;
       const before = g.turn;
+      // the two cards turned over above may have matched by luck, so count
+      // from where this player actually is rather than from zero
+      const had = g.players[before].pairs;
       const first = g.cards.find((c) => !c.takenBy);
       const twin = g.cards.find((c) => c.id === first.id && c.index !== first.index);
       document.querySelector(`.mcard[data-i="${first.index}"]`).click();
       document.querySelector(`.mcard[data-i="${twin.index}"]`).click();
       await new Promise((r) => setTimeout(r, 1100));
       const badge = document.querySelector('.mfound');
-      return g.turn === before && g.players[before].pairs === 1
+      return g.turn === before && g.players[before].pairs === had + 1
         && badge.classList.contains('is-shown') && badge.textContent.length > 2;
     });
   })());
@@ -472,6 +475,80 @@ const alwaysRolls = (value) => ({
     return (await page.evaluate(() => typeof globalThis.MEMORY)) === 'undefined'
       && await page.isVisible('#screen-shelf');
   })());
+
+  await ctx.close();
+}
+
+/* ── Memory: a level round ──
+   About one round in five ends level at these sizes, so it must not hand a
+   trophy to whoever happened to sit down first. The table is set up level
+   with one pair left, and that last pair is then played for real. */
+{
+  const { ctx, page } = await open('memory-draw', { width: 820, height: 1180 });
+  await page.goto(`http://localhost:${PORT}/#/memory`);
+  await page.waitForSelector('.memory .seats .seat');
+  await page.click('.size[data-size="1"]');          // six pairs, so 3–3 is possible
+  await page.click('[data-el="play"]');
+  await page.waitForSelector('.mcard');
+
+  const before = await page.evaluate(() => {
+    const g = MEMORY.game.state;
+    const ids = [...new Set(g.cards.map((c) => c.id))];
+    const last = ids.pop();
+    ids.forEach((id, k) => {
+      const owner = g.players[k % g.players.length];
+      g.cards.filter((c) => c.id === id).forEach((c) => { c.takenBy = owner.color; });
+      owner.pairs += 1;
+    });
+    g.left = 1;
+    g.turn = g.players.indexOf(g.players.reduce((a, b) => (b.pairs < a.pairs ? b : a)));
+    const stored = JSON.parse(localStorage.getItem('khel.memory.tally') || '{}');
+    g.cards.filter((c) => c.id === last)
+      .forEach((c) => document.querySelector(`.mcard[data-i="${c.index}"]`).click());
+    return stored;
+  });
+
+  await page.waitForSelector('.podium-row', { timeout: 8000 });
+  await page.waitForTimeout(300);
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem('khel.memory.tally') || '{}'));
+  const pairs = await page.$$eval('.podium-pairs', (els) => els.map((e) => e.textContent));
+  const medals = await page.$$eval('.podium-medal', (els) => els.map((e) => e.textContent));
+
+  check('Memory: a level round really is level', pairs[0] === pairs[1]);
+  check('Memory: and it is called a draw',
+    (await page.textContent('[data-el="winTitle"]')).includes('draw'));
+  check('Memory: level players share a place', medals[0] === medals[1]);
+  check('Memory: and nobody banks a win', JSON.stringify(before) === JSON.stringify(after));
+
+  await ctx.close();
+}
+
+/* ── the shared toast, and the family listener ──
+   Both are things that fail silently: a missing #toast swallows every
+   message in every game without an error, and a listener kept after a game
+   unmounts makes the next family edit refresh screens that no longer
+   exist. Neither shows up in a screenshot, so they are asserted here. */
+{
+  const { ctx, page } = await open('plumbing', { width: 820, height: 1180 });
+
+  check('the toast has somewhere to appear', await page.evaluate(async () => {
+    const { toast } = await import('/js/toast.js');
+    toast('hello', 4000);
+    const el = document.getElementById('toast');
+    return !!el && el.classList.contains('show') && el.textContent === 'hello';
+  }));
+
+  check('a game releases its family listener when it closes', await page.evaluate(async () => {
+    const family = await import('/js/family.js');
+    const baseline = family.listenerCount();          // the shelf's own
+    for (const id of KHEL.GAMES.map((g) => g.id)) {
+      location.hash = `#/${id}`;
+      await new Promise((r) => setTimeout(r, 800));
+      KHEL.goHome();
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    return family.listenerCount() === baseline && baseline > 0;
+  }));
 
   await ctx.close();
 }

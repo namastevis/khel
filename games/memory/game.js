@@ -10,11 +10,11 @@
 import {
   createGame, flip, resolve, current, isOver, canFlip, cpuChoice, standings,
 } from './rules.js';
-import { COLORS, SIZES, DEFAULT_SIZE, gridFor } from './config.js';
+import { ORDER, COLORS, SIZES, DEFAULT_SIZE, gridFor } from './config.js';
 import { pictureSVG, byId } from './deck.js';
-import { sfx, isMuted } from '../../js/audio.js';
+import { sfx } from '../../js/audio.js';
 import { confetti } from '../../js/confetti.js';
-import { say, stopSaying } from './voice.js';
+import { escapeHtml } from '../../js/text.js';
 
 /* How long two cards stay up before they are judged. Long enough for
    the slowest person at the table to have actually looked. */
@@ -22,12 +22,16 @@ const LOOK_MATCH = 700;
 const LOOK_MISS = 1150;
 const CPU_THINK = 620;
 
-export function createController(root, el, { onGameOver }) {
+/* The biggest a card ever gets, however much room there is. */
+const MAX_CELL = 165;
+
+export function createController(el, { onGameOver }) {
   let g = null;
   let size = DEFAULT_SIZE;
   let previous = null;              // last round's pictures and layout
   let busy = false;                 // a pair is being judged; ignore taps
   let timers = [];
+  let stopConfetti = null;
 
   const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
   const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
@@ -52,19 +56,21 @@ export function createController(root, el, { onGameOver }) {
 
     const options = [gridFor(size, true), gridFor(size, false)];
     const best = options.reduce((a, b) => (cellFor(b) > cellFor(a) ? b : a));
-    const cell = cellFor(best);
+
+    // Filling the screen is not the goal — six cards on a laptop would each
+    // be the size of a saucer, and a board that sprawls is harder to hold in
+    // your head than one you can take in at a glance. So the cards grow to
+    // fit and then stop.
+    const cell = Math.min(cellFor(best), MAX_CELL);
 
     board.style.setProperty('--cols', best.cols);
     board.style.setProperty('--rows', best.rows);
     board.style.width = `${cell * best.cols + gap * (best.cols - 1)}px`;
     board.style.height = `${cell * best.rows + gap * (best.rows - 1)}px`;
-    return best;
   }
 
   function build() {
     const board = el('board');
-
-
     board.innerHTML = g.cards.map((c, i) => `
       <button class="mcard" data-i="${i}" aria-label="Card ${i + 1}">
         <span class="mcard-inner">
@@ -150,15 +156,20 @@ export function createController(root, el, { onGameOver }) {
     }, matched ? LOOK_MATCH : LOOK_MISS);
   }
 
-  /* The name of the pair, big for a moment — and said aloud, which is
-     how a picture book teaches a word. No reading required either way. */
+  /* The name of the pair, big for a moment.
+
+     This used to be spoken aloud as well, with the browser's built-in
+     voice. It was cut: the synthesiser stutters and takes its own time,
+     which put a pause between finding a pair and playing on — and a
+     one-second wait every single go is exactly the friction this game
+     can't afford. The word on screen does the same job and costs
+     nothing. */
   function showName(text) {
     const badge = el('found');
     badge.textContent = text;
     badge.classList.remove('is-shown');
     void badge.offsetWidth;                     // restart the animation
     badge.classList.add('is-shown');
-    if (!isMuted()) say(text);
   }
 
   function cpuGo() {
@@ -169,40 +180,52 @@ export function createController(root, el, { onGameOver }) {
   }
 
   /* ── the end ────────────────────────────────────────────── */
+  /* An even number of pairs and an even split is a real outcome here —
+     about one round in five at the smaller sizes — so it gets said out
+     loud rather than being handed to whoever happens to sit first. */
   function finish() {
     const order = standings(g);
     const champion = order[0];
+    const drawn = order.length > 1 && order[1].pairs === champion.pairs;
 
-    el('winTitle').textContent = `${champion.name} wins!`;
-    el('winSub').textContent = order.length > 1
-      ? `${champion.pairs} pair${champion.pairs === 1 ? '' : 's'}`
-      : `You found all ${champion.pairs}!`;
+    const pairs = (n) => `${n} pair${n === 1 ? '' : 's'}`;
+    el('winTitle').textContent = drawn ? "It's a draw!" : `${champion.name} wins!`;
+    el('winSub').textContent = order.length === 1 ? `You found all ${champion.pairs}!`
+      : drawn ? `${pairs(champion.pairs)} each`
+        : pairs(champion.pairs);
 
+    // people level on pairs share a place, and a medal
     const MEDALS = ['🥇', '🥈', '🥉', '🎖️'];
-    el('podium').innerHTML = order.map((p, i) => `
+    let place = 0;
+    el('podium').innerHTML = order.map((p, i) => {
+      if (i && p.pairs !== order[i - 1].pairs) place = i;
+      return `
       <li class="podium-row" style="--c:${COLORS[p.color].main}">
-        <span class="podium-medal">${MEDALS[i] || '🎖️'}</span>
+        <span class="podium-medal">${MEDALS[place] || '🎖️'}</span>
         <span class="podium-name">${escapeHtml(p.name)}</span>
         <span class="podium-pairs">${p.pairs}</span>
-      </li>`).join('');
+      </li>`;
+    }).join('');
 
     el('winOverlay').classList.add('is-active');
-    confetti(el('confetti'));
+    stopConfetti = confetti(el('confetti'));
     sfx.win();
-    onGameOver?.(g.finished);
+    onGameOver?.(g.finished, drawn);
   }
 
   /* ── public ─────────────────────────────────────────────── */
   function start(seats, names) {
     clearTimers();
-    stopSaying();
+    stopConfetti?.();               // or the last round rains on this one
+    stopConfetti = null;
     busy = false;
-    g = createGame({ size, seats, names, order: Object.keys(COLORS), previous });
+    g = createGame({ size, seats, names, order: ORDER, previous });
     previous = { pictures: g.pictures, deal: g.deal };
     build();
     paint();
     el('sizeName').textContent = SIZES[size].label;
-    if (current(g).kind === 'cpu') later(cpuGo, CPU_THINK);
+    // no seats filled means no players: nothing to start
+    if (current(g)?.kind === 'cpu') later(cpuGo, CPU_THINK);
   }
 
   function setSize(next) {
@@ -211,7 +234,7 @@ export function createController(root, el, { onGameOver }) {
     return size;
   }
 
-  function stop() { clearTimers(); stopSaying(); busy = false; g = null; }
+  function stop() { clearTimers(); stopConfetti?.(); stopConfetti = null; busy = false; g = null; }
 
   // Re-fitting is just arithmetic on the existing buttons, so a rotation
   // never rebuilds the board — which would have reset every flip.
@@ -235,6 +258,3 @@ export function createController(root, el, { onGameOver }) {
     },
   };
 }
-
-const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

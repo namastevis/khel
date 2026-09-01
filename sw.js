@@ -9,7 +9,7 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v6';
+const CACHE = 'khel-v9';
 
 const ASSETS = [
   './',
@@ -18,6 +18,8 @@ const ASSETS = [
   'manifest.webmanifest',
 
   'js/shell.js',
+  'js/store.js',
+  'js/text.js',
   'js/catalog.js',
   'js/audio.js',
   'js/toast.js',
@@ -47,7 +49,6 @@ const ASSETS = [
   'games/memory/rules.js',
   'games/memory/deck.js',
   'games/memory/config.js',
-  'games/memory/voice.js',
   'games/memory/memory.css',
 
   'icons/icon-192.png',

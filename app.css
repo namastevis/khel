@@ -179,7 +179,24 @@ body {
   opacity: .85;
 }
 
-.shelf-foot { display: flex; gap: 10px; margin-top: 2px; }
+.shelf-foot { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+
+/* The quiet, permanent way to install — deliberately unremarkable, since
+   the dashed banner above is the one doing the asking. */
+.install-mini {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: clamp(11px, 2.6vmin, 14px);
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.install-mini[hidden] { display: none; }
+.install-mini:active { color: var(--ink); }
 
 /* ───────────── shared buttons ───────────── */
 .big-btn {

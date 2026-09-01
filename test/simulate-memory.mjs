@@ -38,7 +38,7 @@ const fail = (msg) => { if (problems++ < 12) console.error('  ✗', msg); };
 
 /* ── every round is spread across the colours ── */
 for (let i = 0; i < 400; i++) {
-  for (const [size, s] of SIZES.entries()) {
+  for (const s of SIZES) {
     const ids = pickPictures(s.pairs);
     if (ids.length !== s.pairs) fail(`${s.label}: asked for ${s.pairs} pictures, got ${ids.length}`);
     if (new Set(ids).size !== ids.length) fail(`${s.label}: the same picture twice in one round`);
@@ -54,7 +54,6 @@ for (let i = 0; i < 400; i++) {
     if (s.pairs <= FAMILIES.length && Math.max(...counts) !== 1) {
       fail(`${s.label}: should be one picture per colour, got ${Math.max(...counts)}`);
     }
-    void size;
   }
 }
 
@@ -81,6 +80,23 @@ for (let i = 0; i < 400; i++) {
   }
   // three pairs from twenty-four: back-to-back repeats should be rare
   if (repeats > 60) fail(`${repeats} pictures carried over in 200 replays — the avoid list isn't working`);
+}
+
+/* ── nobody at the table ──
+   The Play button is disabled in this state, but "Playing on my own" can
+   reach it with an empty family, and a crash there would be the worst
+   possible first impression. */
+{
+  const names = Object.fromEntries(ORDER.map((c) => [c, c]));
+  const seats = { red: 'off', green: 'off', yellow: 'off', blue: 'off' };
+  try {
+    const g = createGame({ size: 0, seats, names, order: ORDER });
+    if (g.players.length) fail('an empty table produced players');
+    if (!isOver(g)) fail('an empty table did not end immediately');
+    if (current(g) !== undefined) fail('an empty table has a current player');
+  } catch (err) {
+    fail(`an empty table threw: ${err.message}`);
+  }
 }
 
 /* ── play them out ── */
@@ -137,6 +153,7 @@ function playOne(seats, size) {
 }
 
 const LINEUPS = [
+  { red: 'human', green: 'off', yellow: 'off', blue: 'off' },     // on your own
   { red: 'human', green: 'human', yellow: 'off', blue: 'off' },
   { red: 'human', green: 'cpu', yellow: 'off', blue: 'off' },
   { red: 'human', green: 'cpu', yellow: 'cpu', blue: 'off' },

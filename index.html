@@ -60,11 +60,17 @@
 
     <div class="shelf-foot">
       <button id="btn-sound" class="icon-btn" aria-label="Sound on or off">&#128266;</button>
+      <!-- The quiet way back. The banner above can be dismissed; this can't,
+           so saying "not now" never locks anyone out of saying yes later. -->
+      <button id="btn-install-mini" class="install-mini" hidden>&#65291; Add to Home Screen</button>
     </div>
   </div>
 </section>
 
 <!-- ══════════════ WHERE A GAME LIVES ══════════════ -->
+<!-- The shared message at the top of the screen. Every game writes here. -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <section id="screen-game" class="screen">
   <div id="game-host"></div>
   <div id="game-loading" class="loading" hidden>Loading&hellip;</div>

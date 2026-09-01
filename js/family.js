@@ -9,7 +9,15 @@
    Everything is kept on this device. Nothing is sent anywhere.
    ═══════════════════════════════════════════════════════════════ */
 
+import { GAMES } from './catalog.js';
+import { readJSON, writeJSON, drop } from './store.js';
+
 const KEY = 'khel.family';
+
+/* Every game on the shelf keeps its own tally; the row under the games
+   adds them up. Taken from the catalogue so adding a game can never
+   quietly leave its scores out of the house scoreboard. */
+const SCORED = () => GAMES.map((g) => g.id);
 
 /* Their own colour, which is theirs whatever piece they play today. */
 export const TINTS = [
@@ -23,19 +31,8 @@ export const MAX_MEMBERS = 8;
 let members = [];
 let listeners = [];
 
-/* ── storage ──────────────────────────────────────────────── */
-function read(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
-  catch { return fallback; }
-}
-
-function write(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
-}
-
-function drop(key) {
-  try { localStorage.removeItem(key); } catch { /* private mode */ }
-}
+const read = readJSON;
+const write = writeJSON;
 
 function save() {
   write(KEY, { v: 1, members });
@@ -49,9 +46,10 @@ const newId = () => (globalThis.crypto?.randomUUID?.() ?? `m${Date.now()}${Math.
    wins against that name. Carry those across rather than starting
    everyone at zero. */
 function migrate() {
+  const OLD = ['ludo', 'snakes'];  // only these two ever stored names per colour
   const seen = new Map();          // name → member
 
-  for (const game of ['ludo', 'snakes']) {
+  for (const game of OLD) {
     const names = read(`khel.${game}.names`, null);
     if (!names) continue;
     for (const colour of ['red', 'green', 'yellow', 'blue']) {
@@ -64,7 +62,7 @@ function migrate() {
   members = [...seen.values()];
   if (!members.length) return false;
 
-  for (const game of ['ludo', 'snakes']) {
+  for (const game of OLD) {
     const oldTally = read(`khel.${game}.tally`, null);
     if (oldTally) {
       const moved = {};
@@ -90,7 +88,7 @@ function migrate() {
   // The old name-per-colour lists have done their job. Leaving them behind
   // would mean migrating a second time, from stale names, if the family
   // were ever cleared and rebuilt.
-  for (const game of ['ludo', 'snakes']) drop(`khel.${game}.names`);
+  for (const game of OLD) drop(`khel.${game}.names`);
 
   return true;
 }
@@ -145,7 +143,7 @@ export function recolour(id, tint) {
 /** Removing someone takes their scores with them, everywhere. */
 export function remove(id) {
   members = members.filter((m) => m.id !== id);
-  for (const game of ['ludo', 'snakes']) {
+  for (const game of SCORED()) {
     const tally = read(`khel.${game}.tally`, {});
     if (tally[id] !== undefined) { delete tally[id]; write(`khel.${game}.tally`, tally); }
 
@@ -164,7 +162,7 @@ export function remove(id) {
 /** Wins across every game, best first — the house scoreboard. */
 export function standings() {
   const totals = new Map(members.map((m) => [m.id, 0]));
-  for (const game of ['ludo', 'snakes']) {
+  for (const game of SCORED()) {
     for (const [id, wins] of Object.entries(read(`khel.${game}.tally`, {}))) {
       if (totals.has(id)) totals.set(id, totals.get(id) + wins);
     }
@@ -178,6 +176,11 @@ export function onChange(fn) {
   listeners.push(fn);
   return () => { listeners = listeners.filter((f) => f !== fn); };
 }
+
+/* Only the tests use this: a game that forgets to let go of its listener
+   leaks silently — the leftover screens still redraw, off-screen, forever —
+   so the count is asserted rather than hoped for. */
+export const listenerCount = () => listeners.length;
 
 /** The display name, never blank. */
 export const label = (id) => (byId(id)?.name || '').trim() || 'Someone';

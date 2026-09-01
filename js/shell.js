@@ -11,6 +11,8 @@ import { GAMES } from './catalog.js';
 import * as family from './family.js';
 import { sfx, unlock, isMuted, toggleMute } from './audio.js';
 import { toast, hideToast } from './toast.js';
+import { readText, writeText, drop } from './store.js';
+import { escapeHtml } from './text.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -131,9 +133,6 @@ $('member-remove').addEventListener('click', () => {
   buildFamily();
 });
 
-const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
 /* ── routing ───────────────────────────────────────────────── */
 let active = null;          // { id, unmount }
 let loading = null;         // id currently being imported
@@ -222,14 +221,32 @@ const NUDGE_AGAIN_AFTER = 7 * 24 * 60 * 60 * 1000;   // a stray tap shouldn't hi
 let deferredInstall = null;
 
 function dismissed() {
-  try {
-    const at = Number(localStorage.getItem('khel.installDismissedAt') || 0);
-    return at > 0 && Date.now() - at < NUDGE_AGAIN_AFTER;
-  } catch { return false; }
+  const at = Number(readText('khel.installDismissedAt') || 0);
+  return at > 0 && Date.now() - at < NUDGE_AGAIN_AFTER;
+}
+
+/* Safari cannot tell us the app is already on the home screen:
+   navigator.standalone is only true *inside* the installed copy, and that
+   copy has its own storage, so nothing it learns comes back to the tab.
+   The best signal left is that the steps were shown at least once —
+   after that, stop opening the banner by itself and leave the quiet
+   footer route. Nagging someone who has already installed it is the
+   worse of the two mistakes. */
+const coached = () => readText('khel.installCoached') === '1';
+
+/* The small permanent link. The banner can be dismissed; this cannot, so
+   saying "not now" never locks anyone out of saying yes later.
+
+   Only offered where installing is actually possible: iOS, where it is
+   always a share-sheet away, or a browser that has told us it can install.
+   A desktop Chrome that already has the app never fires that event, so the
+   link correctly stays away there too. */
+function paintInstallRoutes() {
+  $('btn-install-mini').hidden = installed() || !(isIOS || deferredInstall);
 }
 
 function showInstallBar() {
-  if (installed() || dismissed()) return;
+  if (installed() || dismissed() || (isIOS && coached())) return;
   $('install-bar').hidden = false;
 }
 
@@ -237,11 +254,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstall = e;
   showInstallBar();
+  paintInstallRoutes();
 });
 
 window.addEventListener('appinstalled', () => {
   $('install-bar').hidden = true;
-  try { localStorage.removeItem('khel.installDismissedAt'); } catch { /* ignore */ }
+  $('btn-install-mini').hidden = true;
+  drop('khel.installDismissedAt');
 });
 
 /* Safari has no install API, so all we can do is point at its own
@@ -252,28 +271,39 @@ function showCoach() {
   coach.classList.toggle('at-top', wide);
   coach.classList.toggle('at-bottom', !wide);
   coach.hidden = false;
+  writeText('khel.installCoached', '1');
 }
 
 $('ios-overlay').addEventListener('click', () => { $('ios-overlay').hidden = true; });
 
-$('btn-install').addEventListener('click', async () => {
+/* Both routes do the same thing — the real prompt where there is one, the
+   Share-button pointer where there isn't. */
+async function askToInstall() {
   sfx.tap();
   if (deferredInstall) {
     deferredInstall.prompt();
     const { outcome } = await deferredInstall.userChoice;
-    deferredInstall = null;
+    deferredInstall = null;       // the event is single-use, accepted or not
     if (outcome === 'accepted') $('install-bar').hidden = true;
+    paintInstallRoutes();
     return;
   }
-  showCoach();                    // iOS, or a browser with no prompt API
-});
+  // Only iOS gets here: everywhere else, neither route is offered without
+  // a live prompt, so nobody is shown Safari instructions for a browser
+  // that has no Share button.
+  if (isIOS) showCoach();
+}
+
+$('btn-install').addEventListener('click', askToInstall);
+$('btn-install-mini').addEventListener('click', askToInstall);
 
 $('btn-install-x').addEventListener('click', () => {
   $('install-bar').hidden = true;
-  try { localStorage.setItem('khel.installDismissedAt', String(Date.now())); } catch { /* ignore */ }
+  writeText('khel.installDismissedAt', String(Date.now()));
 });
 
 if (isIOS) showInstallBar();     // iOS gets no event, so decide straight away
+paintInstallRoutes();
 
 /* ── go ────────────────────────────────────────────────────── */
 family.load();

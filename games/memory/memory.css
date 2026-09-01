@@ -142,8 +142,7 @@
 .mcard:not(.is-taken):not(.is-up):active .mcard-inner { transform: scale(.94); }
 
 /* ── the name of what was just found ────────────
-   Big, brief, and over the middle of the board. Said aloud too, but
-   the word is always there whether or not there's a voice. */
+   Big, brief, and over the middle of the board. */
 .mfound {
   position: absolute;
   left: 50%; top: 50%;

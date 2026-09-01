@@ -6,6 +6,7 @@ import { ORDER, COLORS, CPU_NAMES, CPU_FACES, SIZES, DEFAULT_SIZE } from './conf
 import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock, sfx } from '../../js/audio.js';
+import { readText, writeText } from '../../js/store.js';
 
 export const meta = { id: 'memory', title: 'Memory' };
 
@@ -123,12 +124,17 @@ export function mount(host, shell) {
     cpuFaces: CPU_FACES,
   });
 
-  const game = createController(root, el, {
-    onGameOver: (order) => {
-      el('tallyRow').textContent = table.recordWin(order);
-      // a clean win on a small board is the moment to point at the next one
+  const game = createController(el, {
+    onGameOver: (order, drawn) => {
+      // a draw is a draw: show the score, but hand nobody the trophy
+      el('tallyRow').textContent = drawn ? table.tallyText() : table.recordWin(order);
+
+      // sweeping a small board is the moment to point at the next one up.
+      // `players` is seat order, so the winner has to come from `finished`.
       const s = game.state;
-      const swept = s && s.players.length > 1 && s.players[0].pairs >= SIZES[game.size].pairs - 1;
+      const top = s && s.players.find((p) => p.color === s.finished[0]);
+      const swept = !drawn && s && s.players.length > 1
+        && top && top.pairs >= SIZES[game.size].pairs - 1;
       el('bigger').hidden = !(swept && game.size < SIZES.length - 1);
     },
   });
@@ -213,18 +219,21 @@ export function mount(host, shell) {
 
   return function unmount() {
     game.destroy();
+    table.destroy();
     delete globalThis.MEMORY;
   };
 }
 
-/* The chosen size is per device, like everything else here. */
+/* The chosen size is per device, like everything else here. Note the
+   explicit null check: Number(null) is 0, which is a valid size, so
+   parsing first would silently make every fresh install "Tiny". */
+const SIZE_KEY = 'khel.memory.size';
+
 function readSize() {
-  try {
-    const n = Number(localStorage.getItem('khel.memory.size'));
-    return Number.isInteger(n) && n >= 0 && n < SIZES.length ? n : DEFAULT_SIZE;
-  } catch { return DEFAULT_SIZE; }
+  const raw = readText(SIZE_KEY);
+  if (raw === null) return DEFAULT_SIZE;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n < SIZES.length ? n : DEFAULT_SIZE;
 }
 
-function writeSize(n) {
-  try { localStorage.setItem('khel.memory.size', String(n)); } catch { /* private mode */ }
-}
+const writeSize = (n) => writeText(SIZE_KEY, String(n));

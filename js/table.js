@@ -10,6 +10,8 @@
 import * as family from './family.js';
 import { pawnSVG } from './pawn.js';
 import { sfx, unlock } from './audio.js';
+import { readJSON, writeJSON } from './store.js';
+import { escapeHtml } from './text.js';
 
 /**
  * @param opts.seatsEl   container for the seat cards
@@ -26,13 +28,8 @@ export function createTable(opts) {
   const { seatsEl, playEl, resetEl, pickEl, game, order, colors, cpuNames, cpuFaces } = opts;
   const KEY = { seats: `khel.${game}.seats`, tally: `khel.${game}.tally` };
 
-  const read = (key, fallback) => {
-    try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
-    catch { return fallback; }
-  };
-  const write = (key, value) => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
-  };
+  const read = readJSON;
+  const write = writeJSON;
 
   /* ── who is in which seat ─────────────────────────────────── */
   let occupants = read(KEY.seats, null) || {};
@@ -121,7 +118,7 @@ export function createTable(opts) {
       ...family.all().map((m) => `
         <button class="pick-option" data-who="${m.id}" ${taken.has(m.id) ? 'disabled' : ''}>
           <span class="pick-dot" style="background:${m.tint}"></span>
-          <span class="pick-name">${escape(m.name)}</span>
+          <span class="pick-name">${escapeHtml(m.name)}</span>
           ${occupants[colour] === m.id ? '<span class="pick-tick">✓</span>' : ''}
           ${taken.has(m.id) ? '<span class="pick-note">already playing</span>' : ''}
         </button>`),
@@ -165,21 +162,26 @@ export function createTable(opts) {
     if (ev.target === pickEl || ev.target.closest('[data-role="pick-close"]')) closePicker();
   });
 
-  family.onChange(() => refresh());
+  const offFamily = family.onChange(refresh);
 
   /* ── the score ────────────────────────────────────────────── */
-  function recordWin(finishOrder) {
-    const champion = occupants[finishOrder[0]];
-    if (isPerson(champion)) tally[champion] = (tally[champion] || 0) + 1;
-    save();
-    refresh();
-
+  /** The running score, as one line. Changes nothing. */
+  function tallyText() {
     return order
       .filter((c) => occupants[c] !== 'off')
       .map((c) => ({ name: labelOf(c), wins: isPerson(occupants[c]) ? (tally[occupants[c]] || 0) : 0 }))
       .sort((a, b) => b.wins - a.wins)
       .map(({ name, wins }) => `${name} ${wins}`)
       .join('  ·  ');
+  }
+
+  /** A win for whoever finished first, and the line that shows it. */
+  function recordWin(finishOrder) {
+    const champion = occupants[finishOrder[0]];
+    if (isPerson(champion)) tally[champion] = (tally[champion] || 0) + 1;
+    save();
+    refresh();
+    return tallyText();
   }
 
   resetEl?.addEventListener('click', () => {
@@ -206,11 +208,12 @@ export function createTable(opts) {
   }
 
   return {
-    refresh, recordWin, soloVsComputer, lineup, closePicker,
+    refresh, recordWin, tallyText, soloVsComputer, lineup, closePicker,
+    /* The family outlives any one game, so its listener has to be let go
+       when the game does — otherwise every visit leaves another one behind,
+       holding on to a screen that no longer exists. */
+    destroy() { offFamily(); },
     get occupants() { return occupants; },
     assign(colour, who) { occupants[colour] = who; refresh(); },
   };
 }
-
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
