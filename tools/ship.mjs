@@ -67,6 +67,7 @@ say(`  ${dirty.length} changed file(s), ${unpushed.length} commit(s) already wai
 step('Checking the rules');
 run('node', ['test/simulate.mjs', '1000'], 'Ludo broke its own rules');
 run('node', ['test/simulate-snakes.mjs', '1000'], 'Snakes & Ladders broke its own rules');
+run('node', ['test/simulate-memory.mjs', '800'], 'Memory broke its own rules');
 
 /* ── 2. the browser tests, if Playwright is here ────────────── */
 if (existsSync(join(ROOT, 'node_modules', 'playwright'))) {

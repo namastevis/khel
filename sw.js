@@ -9,7 +9,7 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v5';
+const CACHE = 'khel-v6';
 
 const ASSETS = [
   './',
@@ -41,6 +41,14 @@ const ASSETS = [
   'games/snakes/render.js',
   'games/snakes/config.js',
   'games/snakes/snakes.css',
+
+  'games/memory/index.js',
+  'games/memory/game.js',
+  'games/memory/rules.js',
+  'games/memory/deck.js',
+  'games/memory/config.js',
+  'games/memory/voice.js',
+  'games/memory/memory.css',
 
   'icons/icon-192.png',
   'icons/icon-512.png',

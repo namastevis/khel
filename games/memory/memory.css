@@ -1,0 +1,226 @@
+/* ═══════════════════════════════════════════════
+   Memory — only what the shell doesn't already do.
+   ═══════════════════════════════════════════════ */
+
+.memory { position: absolute; inset: 0; }
+.memory .game-name { color: #9B6BD6; }
+
+/* ── how many cards ─────────────────────────────
+   The button draws the grid it stands for, so the picture is the
+   label and nothing has to be read to choose. */
+.sizes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(8px, 2vmin, 14px);
+  width: min(460px, 94vw);
+}
+.size {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: clamp(8px, 1.8vmin, 12px) 4px;
+  border: 3px solid transparent;
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+.size svg { width: clamp(26px, 7vmin, 38px); height: clamp(26px, 7vmin, 38px); fill: #C9BCA6; }
+.size-label { font-weight: 800; font-size: clamp(12px, 2.9vmin, 15px); }
+.size-cards { color: var(--ink-soft); font-size: clamp(10px, 2.3vmin, 12px); }
+.size.is-on { border-color: #9B6BD6; }
+.size.is-on svg { fill: #9B6BD6; }
+.size:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(67,51,31,.16); }
+
+/* ── the board ──────────────────────────────────
+   One grid of square cards, laid out whichever way up fits best and
+   sized in px by game.js so it always fills the space it is given. */
+.mstage {
+  position: absolute; inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(6px, 1.6vmin, 14px);
+  gap: clamp(4px, 1.2vmin, 10px);
+}
+
+.mtop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.mturn {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(13px, 3vmin, 18px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mturn b { font-weight: 800; }
+.mturn span { color: var(--ink-soft); }
+.msize {
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: clamp(11px, 2.5vmin, 14px);
+}
+
+.mboard-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.mboard {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: clamp(5px, 1.4vmin, 12px);
+  /* width and height are set in px by game.js — it measures the space
+     and picks whichever way up gives the bigger cards. */
+}
+
+/* ── a card ─────────────────────────────────────
+   Two faces on one button, flipped with a transform the browser
+   animates itself. */
+.mcard {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  perspective: 700px;
+  cursor: pointer;
+  min-width: 0;
+  min-height: 0;
+}
+.mcard-inner {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform .34s cubic-bezier(.3,.7,.3,1);
+}
+.mcard.is-up .mcard-inner { transform: rotateY(180deg); }
+
+.mcard-back, .mcard-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: clamp(8px, 2vmin, 16px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mcard-back {
+  background: linear-gradient(150deg, #7E57C2, #9B6BD6 55%, #B98BE6);
+  box-shadow: var(--shadow);
+}
+.mcard-mark {
+  width: 42%; height: 42%;
+  border-radius: 50%;
+  border: 3px dashed rgba(255,255,255,.55);
+}
+
+.mcard-face {
+  transform: rotateY(180deg);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  padding: 8%;
+}
+.mcard-face svg { width: 100%; height: 100%; display: block; }
+
+.mcard.is-taken { cursor: default; }
+.mcard.is-taken .mcard-face {
+  outline: 3px solid var(--taken);
+  outline-offset: -3px;
+  opacity: .55;
+}
+.mcard:not(.is-taken):not(.is-up):active .mcard-inner { transform: scale(.94); }
+
+/* ── the name of what was just found ────────────
+   Big, brief, and over the middle of the board. Said aloud too, but
+   the word is always there whether or not there's a voice. */
+.mfound {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  font-weight: 800;
+  font-size: clamp(30px, 9vmin, 62px);
+  color: var(--ink);
+  text-shadow: 0 0 14px var(--cream), 0 0 30px var(--cream), 0 4px 0 rgba(67,51,31,.14);
+  opacity: 0;
+}
+.mfound.is-shown { animation: found 1.25s ease-out forwards; }
+@keyframes found {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.6); }
+  18%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  30%  { transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -62%) scale(1); }
+}
+
+/* ── who has what ───────────────────────────────*/
+.mscores {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(5px, 1.4vmin, 10px);
+}
+.mscore {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  padding: clamp(3px, .9vmin, 6px) clamp(9px, 2vmin, 14px);
+  box-shadow: 0 3px 0 rgba(67,51,31,.10);
+  font-size: clamp(11px, 2.7vmin, 15px);
+}
+.mscore-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.18);
+  flex: none;
+}
+.mscore-name {
+  font-weight: 800;
+  max-width: 9ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mscore-pairs {
+  font-weight: 800;
+  color: var(--ink-soft);
+  min-width: 1.2em;
+  text-align: right;
+}
+.mscore.is-turn {
+  border-color: var(--c);
+  transform: translateY(-2px);
+}
+
+.podium-pairs {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--ink-soft);
+  font-size: clamp(13px, 3.2vmin, 17px);
+}
+
+/* Landscape on a phone is short: give the board every pixel. */
+@media (orientation: landscape) and (max-height: 460px) {
+  .mtop, .mscores { font-size: 12px; }
+  .mstage { padding: 5px; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mcard-inner { transition: none; }
+  .mfound.is-shown { animation-duration: .01s; opacity: 1; }
+}

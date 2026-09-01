@@ -26,6 +26,13 @@ export const GAMES = [
     accent: 'var(--green)',
     art: snakesArt,
   },
+  {
+    id: 'memory',
+    title: 'Memory',
+    blurb: 'Turn two cards, find the pair',
+    accent: '#9B6BD6',
+    art: memoryArt,
+  },
 ];
 
 /* Little board, drawn rather than loaded — no image files to fetch. */
@@ -65,5 +72,26 @@ function snakesArt() {
     <circle cx="74" cy="18" r="8" fill="#4FAE7C"/>
     <circle cx="71" cy="16" r="2.2" fill="#FFFDF6"/>
     <circle cx="77" cy="16" r="2.2" fill="#FFFDF6"/>
+  </svg>`;
+}
+
+/* Three cards, one turned over — the game in one picture. */
+function memoryArt() {
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+    <g transform="rotate(-8 30 56)">
+      <rect x="8" y="30" width="34" height="46" rx="8" fill="#9B6BD6"/>
+      <circle cx="25" cy="53" r="8" fill="none" stroke="#FFFDF6" stroke-width="3" stroke-dasharray="4 4"/>
+    </g>
+    <g transform="rotate(7 70 54)">
+      <rect x="53" y="26" width="34" height="46" rx="8" fill="#9B6BD6"/>
+      <circle cx="70" cy="49" r="8" fill="none" stroke="#FFFDF6" stroke-width="3" stroke-dasharray="4 4"/>
+    </g>
+    <g transform="rotate(-2 50 62)">
+      <rect x="33" y="40" width="36" height="48" rx="8" fill="#FFFDF6" stroke="#E3D8C4" stroke-width="3"/>
+      <circle cx="47" cy="66" r="10" fill="#F0544F"/>
+      <circle cx="57" cy="66" r="10" fill="#F0544F"/>
+      <rect x="49" y="48" width="4" height="10" rx="2" fill="#8B5E2A"/>
+      <path d="M53 52c5-6 12-6 12-6s0 7-6 8c-4 1-6-1-6-2z" fill="#3FBF6F"/>
+    </g>
   </svg>`;
 }

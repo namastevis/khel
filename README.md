@@ -17,10 +17,16 @@ completely offline.
 |---|---|
 | **Ludo** | Race your four pieces home |
 | **Snakes & Ladders** | Climb the ladders, dodge the snakes |
+| **Memory** | Turn two cards, find the pair |
 
-Both seat two to four people round one device, in any mix of people and computer
-opponents. Both use the same setup screen, so the family, the seats and the running
-score work the same way — and each keeps its own scores.
+All three seat two to four people round one device, in any mix of people and computer
+opponents, and share the same setup screen — so the family, the seats and the running
+score work the same way everywhere, and each game keeps its own scores.
+
+They deliberately reward different things. Ludo and Snakes & Ladders are dice: nobody
+wins them by being good, which is exactly why the youngest player wins as often as
+anyone. Memory is not luck at all, and it is the one where a five-year-old beats the
+adults on merit.
 
 ## The family
 
@@ -104,6 +110,12 @@ is only offered on a 6, and that the winner really does have all four pieces hom
 board itself: every ladder goes up, every snake goes down, no jump lands on another jump,
 and square *n* is always next to square *n−1*.
 
+`test/simulate-memory.mjs` plays Memory out the same way and checks the things that
+would quietly spoil it: that every round is spread across the colour families, that a
+replay never deals the table somebody has just learned, that the computer never
+remembers more than it is allowed to — and that it stays beatable, by measuring its win
+rate against a player who remembers nothing at all and failing if it climbs too high.
+
 ## How it fits together
 
 ```
@@ -120,6 +132,7 @@ js/confetti.js        paper for the winner
 js/toast.js           the shared message at the top of the screen
 games/ludo/           one folder per game
 games/snakes/
+games/memory/
 sw.js                 offline cache — lists every file
 tools/make-icons.py   redraws the app icons and the link-preview card
 tools/bump-cache.mjs  bumps the offline cache name before a deploy
@@ -141,6 +154,63 @@ works offline, and the tablet's back gesture does the sane thing.
 
 The shell imports games lazily, so a new game costs the shelf nothing until it is
 opened.
+
+## Memory
+
+Turn over two cards; the same picture twice and you keep the pair and go again. It is
+the one game here with no dice in it.
+
+**The pictures.** Twenty-four of them, in six colour families of four — reds, oranges,
+yellows, greens, blues, pinks. That grouping is not decoration, it's the difficulty
+ladder. A round takes its pictures round-robin across the families, never as a flat
+random draw, so:
+
+| round | pictures per colour | what it asks of you |
+|---|---|---|
+| 3 pairs, 6 cards | one, from three families | every card a different colour — match colours |
+| 6 pairs, 12 cards | one from each | still colour, but all six on the table |
+| 8 pairs, 16 cards | two families doubled | colour narrows it, mostly |
+| 12 pairs, 24 cards | two of every colour | colour tells you nothing; look at the picture |
+
+So the board doesn't only get bigger, it gets harder in kind — and that comes out of the
+structure rather than being bolted on. A flat random draw could also hand you four green
+things and nothing else, which is the round that ends in tears.
+
+Two rules held the set together, and both matter more than they look. **One nameable
+thing per card**, because the way a small player holds positions in their head is verbal
+— "elephant, top corner" — so a card has to be a noun they already own; a pattern has no
+name and nothing to rehearse. And **nothing in a family is confusable with anything else
+in it**: an apple and a tomato are both round and red, and two of those in one round is a
+card you lose to a glance rather than to memory. That is why there is no tomato in the
+deck, and no moon beside the banana. One picture was drawn as a whale, kept reading as a
+fish, and is now called Fish — the spoken name has to match what she actually sees.
+
+**Naming what you found.** A matched pair puts its name on screen for a moment and says
+it aloud, using the speech synthesiser every browser already has, so there are no audio
+files and it works in aeroplane mode like everything else. It follows the sound button,
+and the word is on screen either way — a device with no voice loses nothing. Nothing is
+ever printed on a card face: reading before recognising is slower, and it would turn the
+game into homework.
+
+**Repetition.** Individual pictures recur, which is fine and rather the point. The
+*combination* doesn't: six from twenty-four is about 135,000 tables. And the layout is
+reshuffled every round including "play again", never into the arrangement it just had, so
+a replay is not the board somebody has already memorised.
+
+**The computer** remembers the last three cards it saw turned over — about where a
+five-year-old is — and two goes in five it knows where a pair is and goes poking about
+somewhere else anyway. That is measured rather than guessed: against a player who
+remembers nothing it wins about 70% of the time, and the simulation fails the build if
+that ever climbs past 85%.
+
+There is no timer, and there won't be. It turns a calm game into a stressful one, and
+it's the one thing that would reliably make her lose to an adult.
+
+The board is real DOM rather than canvas: a card is a button, the flip is a CSS
+transform the browser animates itself, and it works with a screen reader without being
+reinvented. `game.js` measures the space and lays the grid out whichever way up gives
+the bigger cards, so a phone held sideways and a tablet in portrait both get the largest
+board that fits, with no orientation special cases.
 
 ## Snakes & Ladders
 

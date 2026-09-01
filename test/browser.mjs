@@ -236,9 +236,11 @@ const alwaysRolls = (value) => ({
 {
   const { ctx, page } = await open('snakes', { width: 820, height: 1180 });
 
-  check('the shelf has both games', (await page.$$('.game-card')).length === 2);
+  // one card per catalogue row, whatever the catalogue holds today
+  check('the shelf shows every game in the catalogue', await page.evaluate(
+    () => document.querySelectorAll('.game-card').length === KHEL.GAMES.length && KHEL.GAMES.length >= 2));
   check('Snakes & Ladders is on the shelf', await page.isVisible('.game-card[data-id="snakes"]'));
-  await page.screenshot({ path: '/tmp/khel-shelf-two.png' });
+  await page.screenshot({ path: '/tmp/khel-shelf.png' });
 
   await page.click('.game-card[data-id="snakes"]');
   await page.waitForTimeout(800);
@@ -364,6 +366,111 @@ const alwaysRolls = (value) => ({
     await page.waitForTimeout(500);
     const names = await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim()));
     return names.length === 3;
+  })());
+
+  await ctx.close();
+}
+
+/* ── Memory ── */
+{
+  const { ctx, page } = await open('memory', { width: 820, height: 1180 });
+  await page.goto(`http://localhost:${PORT}/#/memory`);
+  await page.waitForSelector('.memory .seats .seat');
+
+  check('Memory: the sizes are offered', (await page.$$('.size')).length === 4);
+
+  await page.click('.size[data-size="0"]');            // Tiny — six cards
+  check('Memory: choosing a size sticks',
+    await page.$eval('.size[data-size="0"]', (el) => el.classList.contains('is-on')));
+
+  await page.click('[data-el="play"]');
+  await page.waitForSelector('.mcard');
+  check('Memory: six cards are dealt', (await page.$$('.mcard')).length === 6);
+  check('Memory: every card starts face down', (await page.$$('.mcard.is-up')).length === 0);
+
+  // the board must fit the space it is given, not spill under the scores
+  check('Memory: the board fits above the scores', await page.evaluate(() => {
+    const board = document.querySelector('.mboard').getBoundingClientRect();
+    const scores = document.querySelector('.mscores').getBoundingClientRect();
+    const wrap = document.querySelector('.mboard-wrap').getBoundingClientRect();
+    return board.bottom <= scores.top + 1 && board.height <= wrap.height + 1 && board.width > 40;
+  }));
+
+  check('Memory: every picture is there exactly twice', await page.evaluate(() => {
+    const seen = {};
+    MEMORY.game.state.cards.forEach((c) => { seen[c.id] = (seen[c.id] || 0) + 1; });
+    return Object.values(seen).every((n) => n === 2) && Object.keys(seen).length === 3;
+  }));
+
+  // a tiny round is one picture per colour — the point of the whole deck
+  check('Memory: the round is spread across the colours', await page.evaluate(async () => {
+    const { byId } = await import('/games/memory/deck.js');
+    const families = MEMORY.game.state.pictures.map((id) => byId(id).family);
+    return new Set(families).size === families.length;
+  }));
+
+  check('Memory: tapping turns a card over', await (async () => {
+    await page.click('.mcard[data-i="0"]');
+    await page.waitForTimeout(450);
+    return (await page.$$('.mcard.is-up')).length === 1;
+  })());
+
+  check('Memory: no third card while two are up', await (async () => {
+    await page.click('.mcard[data-i="1"]');
+    await page.waitForTimeout(80);
+    await page.click('.mcard[data-i="2"]').catch(() => {});
+    await page.waitForTimeout(120);
+    return (await page.$$('.mcard.is-up')).length <= 2;
+  })());
+
+  /* Played by driving the rules, not by guessing — this is a test about
+     the screen keeping up, not about being lucky. */
+  check('Memory: finding a pair keeps the turn and names it', await (async () => {
+    await page.waitForTimeout(1500);
+    return page.evaluate(async () => {
+      const g = MEMORY.game.state;
+      const before = g.turn;
+      const first = g.cards.find((c) => !c.takenBy);
+      const twin = g.cards.find((c) => c.id === first.id && c.index !== first.index);
+      document.querySelector(`.mcard[data-i="${first.index}"]`).click();
+      document.querySelector(`.mcard[data-i="${twin.index}"]`).click();
+      await new Promise((r) => setTimeout(r, 1100));
+      const badge = document.querySelector('.mfound');
+      return g.turn === before && g.players[before].pairs === 1
+        && badge.classList.contains('is-shown') && badge.textContent.length > 2;
+    });
+  })());
+
+  check('Memory: the round ends with a podium', await (async () => {
+    await page.evaluate(async () => {
+      const g = MEMORY.game.state;
+      while (g.left > 0) {
+        const first = g.cards.find((c) => !c.takenBy);
+        const twin = g.cards.find((c) => c.id === first.id && c.index !== first.index);
+        document.querySelector(`.mcard[data-i="${first.index}"]`).click();
+        document.querySelector(`.mcard[data-i="${twin.index}"]`).click();
+        await new Promise((r) => setTimeout(r, 950));
+      }
+    });
+    await page.waitForSelector('.podium-row', { timeout: 8000 });
+    return (await page.$$('.podium-row')).length === 2;
+  })());
+
+  check('Memory: and its own score', /\d/.test(await page.textContent('[data-el="tallyRow"]')));
+
+  check('Memory: playing again deals a different table', await (async () => {
+    const before = await page.evaluate(() => MEMORY.game.state.deal.join());
+    await page.click('[data-el="again"]');
+    await page.waitForTimeout(600);
+    const after = await page.evaluate(() => MEMORY.game.state.deal.join());
+    return before !== after;
+  })());
+
+  check('Memory: leaving cleans up', await (async () => {
+    await page.click('[data-el="quit"]');
+    await page.waitForTimeout(500);
+    return (await page.evaluate(() => typeof globalThis.MEMORY)) === 'undefined'
+      && await page.isVisible('#screen-shelf');
   })());
 
   await ctx.close();
