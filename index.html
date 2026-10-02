@@ -4,13 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Khel</title>
-<meta name="description" content="Games made to be played together, round one tablet. No ads, no tracking, no sign-in — and it works with no internet at all." />
+<meta name="description" content="The games your grandparents played — Pachisi&rsquo;s Ludo, Moksha Patam and more — made to be played together round one tablet. No ads, no tracking, no sign-in, no internet needed." />
 <meta name="theme-color" content="#FFF6E5" />
 
 <!-- how the link looks when it lands in a chat -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Khel — games for family and friends" />
-<meta property="og:description" content="Games made to be played together, round one tablet — or on your own against the computer. No ads, no tracking, no sign-in, and no internet needed." />
+<meta property="og:title" content="Khel — the games your grandparents played" />
+<meta property="og:description" content="Ludo from Pachisi, Moksha Patam (the original Snakes &amp; Ladders) and more — made to be played together round one tablet. No ads, no tracking, no sign-in, and no internet needed." />
 <meta property="og:url" content="https://namastevis.in/khel/" />
 <meta property="og:image" content="https://namastevis.in/khel/icons/share-card.png" />
 <meta property="og:image:width" content="1200" />
@@ -33,7 +33,9 @@
     <h1 class="logo">
       <span class="logo-l" style="--c:var(--red)">K</span><span class="logo-l" style="--c:var(--green)">h</span><span class="logo-l" style="--c:var(--yellow)">e</span><span class="logo-l" style="--c:var(--blue)">l</span>
     </h1>
-    <p class="tagline">Made to be played together. No ads, no sign-in, no internet needed.</p>
+    <p class="tagline">The games your grandparents played</p>
+    <div class="band" aria-hidden="true"></div>
+    <p class="promise">Made to be played together. No ads, no sign-in, no internet needed.</p>
 
     <div id="install-bar" class="install-bar" hidden>
       <button id="btn-install" class="install-btn">
@@ -72,6 +74,21 @@
     <p class="version" id="version" hidden></p>
   </div>
 </section>
+
+<!-- ══════════════ where a game comes from ══════════════ -->
+<div id="story" class="overlay story-overlay">
+  <div class="help-card story-card" role="dialog" aria-labelledby="story-title">
+    <div class="band" aria-hidden="true"></div>
+    <p class="story-kicker" id="story-kicker"></p>
+    <h2 id="story-title">Story</h2>
+    <div class="story-body" id="story-body"></div>
+    <p class="story-names" id="story-names"></p>
+    <p class="story-here" id="story-here"></p>
+    <p class="story-ask" id="story-ask"></p>
+    <button class="big-btn" id="story-play">Play</button>
+    <button class="ghost-btn" id="story-close">Close</button>
+  </div>
+</div>
 
 <!-- ══════════════ WHERE A GAME LIVES ══════════════ -->
 <!-- The shared message at the top of the screen. Every game writes here. -->

@@ -60,13 +60,14 @@ export const DECK = [
       <path d="M50 76q10 6 0 11t0 11" stroke="#C43C38" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
-    id: 'bus', name: 'Bus', family: 'red',
-    art: `<rect x="10" y="26" width="80" height="46" rx="11" fill="#F0544F"/>
-      <rect x="18" y="34" width="22" height="16" rx="4" fill="#CDE9FF"/>
-      <rect x="46" y="34" width="22" height="16" rx="4" fill="#CDE9FF"/>
-      <rect x="74" y="34" width="9" height="16" rx="4" fill="#CDE9FF"/>
-      <rect x="10" y="57" width="80" height="6" fill="#C43C38"/>
-      <circle cx="30" cy="76" r="9" fill="${INK}"/><circle cx="70" cy="76" r="9" fill="${INK}"/>`,
+    // A lattu: the wooden top wound with string. The stripes and the
+    // nail at the bottom are what make it a top and not a strawberry.
+    id: 'lattu', name: 'Lattu', family: 'red',
+    art: `<path d="M20 38Q50 24 80 38Q76 64 50 88Q24 64 20 38z" fill="#F0544F"/>
+      <path d="M25 47Q50 38 75 47M32 61Q50 54 68 61" stroke="#FFC531" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <rect x="43" y="13" width="14" height="17" rx="6" fill="${WOOD}"/>
+      <path d="M50 86v9" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M57 18q15-7 25 4" stroke="${INK}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
   },
 
   /* ── orange ─────────────────────────────────────────────── */
@@ -80,11 +81,12 @@ export const DECK = [
       <path d="M54 18c9-8 19-6 19-6s-3 12-12 12c-4 0-7-3-7-6z" fill="#2C9954"/>`,
   },
   {
-    id: 'carrot', name: 'Carrot', family: 'orange',
-    art: `<path d="M50 92 31 40h38z" fill="#F5893C"/>
-      <path d="M38 54h24M35 66h20" stroke="#D46A1E" stroke-width="3" stroke-linecap="round"/>
-      <path d="M50 42V20M50 30c-7-9-18-10-18-10s3 13 13 15M50 30c7-9 18-10 18-10s-3 13-13 15"
-        stroke="#3FBF6F" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    id: 'diya', name: 'Diya', family: 'orange',
+    art: `<path d="M50 54C38 42 44 26 50 10 56 26 62 42 50 54z" fill="#FFC531"/>
+      <path d="M50 51C45 44 47 36 50 29 53 36 55 44 50 51z" fill="#F0544F"/>
+      <path d="M12 58Q50 96 88 58z" fill="#F5893C"/>
+      <path d="M12 58Q50 66 88 58Q72 50 50 50 28 50 12 58z" fill="#D46A1E"/>
+      <path d="M30 74Q50 82 70 74" stroke="#FFDA7A" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
     id: 'cat', name: 'Cat', family: 'orange',
@@ -118,8 +120,13 @@ export const DECK = [
       <circle cx="30" cy="36" r="3.5" fill="${INK}"/>`,
   },
   {
-    id: 'star', name: 'Star', family: 'yellow',
-    art: `<path d="M50 8l12 26 28 3-21 19 6 28-25-14-25 14 6-28-21-19 28-3z" fill="#FFC531"/>`,
+    // A spiral, because that is all a jalebi is — and nothing else in
+    // the yellow family coils.
+    id: 'jalebi', name: 'Jalebi', family: 'yellow',
+    art: `<path d="M50 50A5 5 0 0 1 60 50A10 10 0 0 1 40 50A15 15 0 0 1 70 50A20 20 0 0 1 30 50A25 25 0 0 1 80 50"
+        stroke="#F5A623" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <path d="M50 50A5 5 0 0 1 60 50A10 10 0 0 1 40 50A15 15 0 0 1 70 50A20 20 0 0 1 30 50A25 25 0 0 1 80 50"
+        stroke="#FFC531" stroke-width="5" fill="none" stroke-linecap="round"/>`,
   },
   {
     id: 'bee', name: 'Bee', family: 'yellow',
@@ -233,16 +240,17 @@ export const DECK = [
       <path d="M48 32 41 20M52 32l7-12" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`,
   },
   {
-    id: 'flower', name: 'Flower', family: 'pink',
-    art: `<g fill="#E86FA6">
-        <ellipse cx="50" cy="24" rx="10" ry="16"/><ellipse cx="50" cy="70" rx="10" ry="16"/>
-        <ellipse cx="27" cy="47" rx="16" ry="10"/><ellipse cx="73" cy="47" rx="16" ry="10"/>
-        <ellipse cx="33" cy="30" rx="10" ry="15" transform="rotate(-45 33 30)"/>
-        <ellipse cx="67" cy="30" rx="10" ry="15" transform="rotate(45 67 30)"/>
-        <ellipse cx="33" cy="64" rx="10" ry="15" transform="rotate(45 33 64)"/>
-        <ellipse cx="67" cy="64" rx="10" ry="15" transform="rotate(-45 67 64)"/>
+    id: 'lotus', name: 'Lotus', family: 'pink',
+    art: `<g fill="#F5A8C8">
+        <path d="M50 74C28 76 12 66 8 52 26 50 42 58 50 74z"/>
+        <path d="M50 74C72 76 88 66 92 52 74 50 58 58 50 74z"/>
       </g>
-      <circle cx="50" cy="47" r="12" fill="#FFC531"/>`,
+      <g fill="#E86FA6">
+        <path d="M50 72C30 66 20 50 22 34 38 38 48 52 50 72z"/>
+        <path d="M50 72C70 66 80 50 78 34 62 38 52 52 50 72z"/>
+        <path d="M50 16C63 32 63 56 50 72 37 56 37 32 50 16z"/>
+      </g>
+      <path d="M20 86Q50 96 80 86" stroke="#3FBF6F" stroke-width="6" fill="none" stroke-linecap="round"/>`,
   },
   {
     id: 'pig', name: 'Pig', family: 'pink',

@@ -1,6 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    catalog.js — what's on the shelf.
 
+   `kicker` is the line above the title: where the game comes from.
+   `story` is what the "The story" link opens — written to be read
+   aloud by whoever is holding the tablet. Keep it true; when a fact
+   is only a tradition, say so ("is said to").
+
    `note` is deliberately absent from every game so far: a line that says
    the same thing on every card isn't telling anyone which game to pick.
    Give a game a note only when it differs from the house rule of two
@@ -14,24 +19,55 @@
 export const GAMES = [
   {
     id: 'ludo',
+    kicker: 'From Pachisi',
     title: 'Ludo',
     blurb: 'Race your four pieces home',
     accent: 'var(--red)',
     art: ludoArt,
+    story: {
+      lines: [
+        'Long before Ludo, India played <b>Pachisi</b> &mdash; on a cross-shaped cloth board, with cowrie shells instead of a dice. <i>Pachis</i> means twenty-five: the biggest throw the shells could give.',
+        'Emperor Akbar is said to have played it on giant courtyard boards, with people dressed in the players&rsquo; colours as the pieces. Traces of those courts are still shown at Agra and Allahabad.',
+        'In 1896 a simpler version, with a dice and a square board, was patented in England as <b>Ludo</b>. Now it has come home.',
+      ],
+      names: 'Pachisi &middot; its cousin Chaupar (Chausar) &middot; Parcheesi &middot; Parch&iacute;s',
+      here: 'We kept Ludo&rsquo;s rules and gave the dice cowrie shells.',
+      ask: 'Did anyone in the family play on a cloth board?',
+    },
   },
   {
     id: 'snakes',
-    title: 'Snakes & Ladders',
-    blurb: 'Climb the ladders, dodge the snakes',
+    kicker: 'Snakes &amp; Ladders',
+    title: 'Moksha Patam',
+    blurb: 'Climb by kindness, slide by greed',
     accent: 'var(--green)',
     art: snakesArt,
+    story: {
+      lines: [
+        'This is where Snakes &amp; Ladders began. In India it was <b>Moksha Patam</b>, a game about how we live: ladders were good deeds that lift you up, snakes the bad habits that pull you down.',
+        'The old boards had more snakes than ladders &mdash; being good was meant to take some effort. When the game reached England in the 1890s, the board got friendlier.',
+      ],
+      names: 'Gyan Chaupar &middot; Parama Padam &middot; Vaikunthapali &middot; Saanp-Seedhi',
+      here: 'Every ladder is a kindness and every snake a bad habit. Land on one and the game tells you which.',
+      ask: 'Which good habit would you put at the bottom of a ladder?',
+    },
   },
   {
     id: 'memory',
+    kicker: 'Bonus game',
     title: 'Memory',
-    blurb: 'Turn two cards, find the pair',
+    blurb: 'Lattu, diya, jalebi &mdash; find the pair',
     accent: '#9B6BD6',
     art: memoryArt,
+    story: {
+      lines: [
+        'Memory isn&rsquo;t an old Indian game &mdash; card-matching is played all over the world.',
+        'So we filled the deck with things from an Indian childhood: a lattu, a diya, a jalebi, a mango, a kite, a peacock and a lotus.',
+      ],
+      names: '',
+      here: 'Turn two cards. If they match, they&rsquo;re yours.',
+      ask: 'What did you play with, before there were screens?',
+    },
   },
 ];
 

@@ -6,7 +6,7 @@
    What the screen owes the player is a clear view of the counting.
    ═══════════════════════════════════════════════════════════════ */
 
-import { COLORS, cellOf } from './config.js';
+import { COLORS, cellOf, VIRTUES, VICES } from './config.js';
 import { createGame, current, applyRoll, nextTurn, sameTurn, isDone } from './rules.js';
 import { createRenderer } from './render.js';
 import { rollDie, drawDie } from '../../js/dice.js';
@@ -133,14 +133,21 @@ export function createController(root, el, hooks = {}) {
       await sleep(320);
       if (!alive(my)) return;
       const to = cellOf(jump.to);
+      const landed = jump.from;
       if (jump.kind === 'ladder') {
+        const virtue = VIRTUES[landed];
         sfx.home();
-        setHint(`Up to ${jump.to}!`);
-        toast(`${current(g).label} climbs to ${jump.to}! 🪜`, 1800);
+        setHint(virtue ? `${virtue}! Up to ${jump.to}` : `Up to ${jump.to}!`);
+        toast(virtue
+          ? `${virtue}! ${current(g).label} climbs to ${jump.to} 🪜`
+          : `${current(g).label} climbs to ${jump.to}! 🪜`, 2000);
       } else {
+        const vice = VICES[landed];
         sfx.capture();
-        setHint(`Down to ${jump.to}`);
-        toast(`Oh no — ${current(g).label} slides to ${jump.to} 🐍`, 1800);
+        setHint(vice ? `${vice}… down to ${jump.to}` : `Down to ${jump.to}`);
+        toast(vice
+          ? `Oh no, ${vice.toLowerCase()}! ${current(g).label} slides to ${jump.to} 🐍`
+          : `Oh no — ${current(g).label} slides to ${jump.to} 🐍`, 2000);
       }
       await tween(my, pi, prev, to, 620, jump.kind === 'snake');
       if (!alive(my)) return;

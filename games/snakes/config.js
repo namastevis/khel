@@ -42,6 +42,20 @@ export const SNAKES = {
   16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 90: 70, 93: 73, 95: 75,
 };
 
+/* Moksha Patam, lightly. The old boards named every ladder for a
+   virtue and every snake for a vice; we keep the idea and the words a
+   small player already knows, and leave the rest to the story card.
+   One name per square, so the toast can say which one you met. */
+export const VIRTUES = {
+  2: 'Kindness', 4: 'Sharing', 9: 'Honesty', 21: 'Patience', 28: 'Courage',
+  36: 'Helping', 51: 'Learning', 71: 'Generosity', 80: 'Gratitude',
+};
+
+export const VICES = {
+  16: 'Anger', 47: 'Greed', 49: 'Lying', 56: 'Boasting', 62: 'Laziness',
+  64: 'Rudeness', 87: 'Pride', 90: 'Jealousy', 93: 'Stealing', 95: 'Selfishness',
+};
+
 /** square → where it takes you, or undefined */
 export const JUMPS = { ...LADDERS, ...SNAKES };
 

@@ -7,7 +7,7 @@ import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock } from '../../js/audio.js';
 
-export const meta = { id: 'snakes', title: 'Snakes & Ladders' };
+export const meta = { id: 'snakes', title: 'Moksha Patam' };
 
 
 const TEMPLATE = `
@@ -15,7 +15,8 @@ const TEMPLATE = `
 
   <section class="game-screen is-active" data-screen="setup">
     <div class="setup-wrap">
-      <h2 class="game-name">Snakes &amp; Ladders</h2>
+      <h2 class="game-name">Moksha Patam</h2>
+      <p class="game-sub">Snakes &amp; Ladders, as it began</p>
       <p class="setup-who">Who's playing?</p>
       <p class="setup-hint">Tap a piece to choose who plays it</p>
 
@@ -35,7 +36,7 @@ const TEMPLATE = `
   <section class="game-screen" data-screen="board">
     <div class="stage">
       <div class="board-holder">
-        <canvas class="board" data-el="board" aria-label="Snakes and ladders board"></canvas>
+        <canvas class="board" data-el="board" aria-label="Moksha Patam board — snakes and ladders"></canvas>
       </div>
 
       <aside class="panel">
@@ -79,8 +80,8 @@ const TEMPLATE = `
       <h2>How to play</h2>
       <ol>
         <li><b>Tap the dice</b> and your piece walks that many squares.</li>
-        <li>Land at the bottom of a <b>ladder</b> and you climb all the way up. 🪜</li>
-        <li>Land on a <b>snake's head</b> and you slide back down to its tail. 🐍</li>
+        <li>Land at the bottom of a <b>ladder</b> and you climb all the way up. Every ladder is a good deed &mdash; kindness, sharing, honesty. 🪜</li>
+        <li>Land on a <b>snake's head</b> and you slide back down to its tail. Every snake is a bad habit &mdash; anger, greed, lying. 🐍</li>
         <li>Roll a <b>6</b> and you go again.</li>
         <li>First to <b>square 100</b> wins &mdash; and you don't need the exact number.</li>
       </ol>

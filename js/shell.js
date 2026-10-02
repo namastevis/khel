@@ -16,17 +16,24 @@ import { escapeHtml } from './text.js';
 
 const $ = (id) => document.getElementById(id);
 
-/* ── the shelf ─────────────────────────────────────────────── */
+/* ── the shelf ─────────────────────────────────────────────
+   Each game is a card to play and, under it, a quieter link to its
+   story — a separate button, because a button inside a button is
+   not a thing a browser will let you tap reliably. */
 function buildShelf() {
   $('shelf').innerHTML = GAMES.map((g) => `
-    <button class="game-card" data-id="${g.id}" style="--accent:${g.accent}">
-      ${g.art()}
-      <span class="card-text">
-        <span class="card-title">${g.title}</span>
-        <span class="card-blurb">${g.blurb}</span>
-        ${g.note ? `<span class="card-note">${g.note}</span>` : ''}
-      </span>
-    </button>`).join('');
+    <div class="game-slot" style="--accent:${g.accent}">
+      <button class="game-card" data-id="${g.id}" style="--accent:${g.accent}">
+        ${g.art()}
+        <span class="card-text">
+          ${g.kicker ? `<span class="card-kicker">${g.kicker}</span>` : ''}
+          <span class="card-title">${g.title}</span>
+          <span class="card-blurb">${g.blurb}</span>
+          ${g.note ? `<span class="card-note">${g.note}</span>` : ''}
+        </span>
+      </button>
+      ${g.story ? `<button class="story-link" data-story="${g.id}">The story &rsaquo;</button>` : ''}
+    </div>`).join('');
 
   $('shelf').querySelectorAll('.game-card').forEach((card) => {
     card.addEventListener('click', () => {
@@ -35,7 +42,54 @@ function buildShelf() {
       location.hash = `#/${card.dataset.id}`;
     });
   });
+
+  $('shelf').querySelectorAll('.story-link').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      unlock();
+      sfx.tap();
+      openStory(btn.dataset.story);
+    });
+  });
 }
+
+/* ── where a game comes from ───────────────────────────────
+   Read aloud, mostly, by a grown-up to whoever is about to play. So it
+   is short, and it ends with a question to ask the oldest person in
+   the room — the part no screen can do. */
+let storyOf = null;
+
+function openStory(id) {
+  const g = GAMES.find((x) => x.id === id);
+  if (!g?.story) return;
+  storyOf = id;
+  const s = g.story;
+  $('story-kicker').innerHTML = g.kicker || '';
+  $('story-title').textContent = g.title;
+  $('story-title').style.color = g.accent;
+  $('story-body').innerHTML = s.lines.map((l) => `<p>${l}</p>`).join('');
+  $('story-names').innerHTML = s.names ? `<b>Also called</b> ${s.names}` : '';
+  $('story-names').hidden = !s.names;
+  $('story-here').innerHTML = s.here ? `<b>In Khel</b> ${s.here}` : '';
+  $('story-ask').innerHTML = s.ask ? `<span>Ask a grandparent</span>${s.ask}` : '';
+  $('story-ask').hidden = !s.ask;
+  $('story-play').textContent = `Play ${g.title}`;
+  $('story').classList.add('is-active');
+}
+
+function closeStory() {
+  $('story').classList.remove('is-active');
+  storyOf = null;
+}
+
+$('story-close').addEventListener('click', () => { sfx.tap(); closeStory(); });
+$('story').addEventListener('click', (ev) => { if (ev.target === $('story')) closeStory(); });
+$('story-play').addEventListener('click', () => {
+  const id = storyOf;
+  unlock();
+  sfx.tap();
+  closeStory();
+  if (id) location.hash = `#/${id}`;
+});
 
 /* ── who lives here ────────────────────────────────────────
    A row of people under the games: tap one to edit them, tap ＋ to
@@ -230,6 +284,7 @@ function route() {
   const game = GAMES.find((g) => g.id === id);
   if (game) openGame(game.id);
   else { closeGame(); show('shelf'); paintLastRound(); }
+  if (game) closeStory();
 }
 
 window.addEventListener('hashchange', route);
@@ -407,6 +462,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
 /* a little of the state, for the automated tests */
 globalThis.KHEL = {
-  GAMES, goHome, family, buildFamily, buildShelf,
+  GAMES, goHome, family, buildFamily, buildShelf, openStory,
   get active() { return active?.id ?? null; },
 };

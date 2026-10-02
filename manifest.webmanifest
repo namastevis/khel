@@ -1,7 +1,7 @@
 {
-  "name": "Khel — games for family and friends",
+  "name": "Khel — the games your grandparents played",
   "short_name": "Khel",
-  "description": "Ad-free games for family and friends to play together on one device. Works offline.",
+  "description": "The games your grandparents played — Ludo from Pachisi, Moksha Patam and more — for the family to play together on one device. No ads. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
