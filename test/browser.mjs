@@ -332,7 +332,7 @@ const alwaysRolls = (value) => ({
 
   check('the shelf shows who lives here',
     (await page.$$eval('.member:not(.member-add) .member-name', (els) => els.map((e) => e.textContent.trim())))
-      .join(',') === 'Chueen,Mamma,Dada');
+      .join(',') === 'Chueen,Mamma');
   check('everyone has a creature of their own', await page.evaluate(() => {
     const faces = KHEL.family.all().map((m) => m.face);
     return faces.every(Boolean) && new Set(faces).size === faces.length;
@@ -347,17 +347,17 @@ const alwaysRolls = (value) => ({
   await page.click('#member-done');
   await page.waitForTimeout(300);
   check('they join the family',
-    (await page.$$('.member:not(.member-add)')).length === 4);
+    (await page.$$('.member:not(.member-add)')).length === 3);
 
   // a typo, then the fix — the whole point of the exercise
-  await page.click('.member:nth-child(4)');
+  await page.click('.member:nth-child(3)');
   await page.waitForTimeout(250);
   await page.fill('#member-name', 'Chuen');
   await page.click('#member-done');
   await page.waitForTimeout(250);
 
   const idBefore = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chuen')?.id);
-  await page.click('.member:nth-child(4)');
+  await page.click('.member:nth-child(3)');
   await page.waitForTimeout(250);
   await page.fill('#member-name', 'Chueen2');
   await page.click('#member-done');
@@ -365,7 +365,7 @@ const alwaysRolls = (value) => ({
   const idAfter = await page.evaluate(() => KHEL.family.all().find((m) => m.name === 'Chueen2')?.id);
   check('fixing a spelling keeps the same person', !!idBefore && idBefore === idAfter);
   check('and doesn\'t create a second one',
-    (await page.$$('.member:not(.member-add)')).length === 4);
+    (await page.$$('.member:not(.member-add)')).length === 3);
 
   // they show up in a game's picker
   await page.click('.game-card[data-id="ludo"]');
@@ -380,7 +380,7 @@ const alwaysRolls = (value) => ({
   await page.waitForTimeout(400);
 
   // remove takes two taps, on purpose
-  await page.click('.member:nth-child(4)');
+  await page.click('.member:nth-child(3)');
   await page.waitForTimeout(250);
   await page.click('#member-remove');
   await page.waitForTimeout(150);
@@ -388,13 +388,13 @@ const alwaysRolls = (value) => ({
   await page.click('#member-remove');
   await page.waitForTimeout(300);
   check('and then removes them',
-    (await page.$$('.member:not(.member-add)')).length === 3);
+    (await page.$$('.member:not(.member-add)')).length === 2);
 
   check('the family survives a reload', await (async () => {
     await page.reload();
     await page.waitForTimeout(500);
     const names = await page.$$eval('.member:not(.member-add)', (els) => els.map((e) => e.textContent.trim()));
-    return names.length === 3;
+    return names.length === 2;
   })());
 
   await ctx.close();

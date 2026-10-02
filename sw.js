@@ -9,7 +9,7 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v14';
+const CACHE = 'khel-v15';
 
 const ASSETS = [
   './',
