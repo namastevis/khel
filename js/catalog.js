@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    catalog.js — what's on the shelf.
 
-   `kicker` is the line above the title: where the game comes from.
+   `title` is the name everyone knows it by; `kicker`, above it, is the
+   older Indian name it grew from. Same order for every game. A game
+   with no older name simply has no kicker.
    `story` is what the "The story" link opens — written to be read
    aloud by whoever is holding the tablet. Keep it true; when a fact
    is only a tradition, say so ("is said to").
@@ -19,10 +21,10 @@
 export const GAMES = [
   {
     id: 'ludo',
-    kicker: 'From Pachisi',
+    kicker: 'Pachisi',
     title: 'Ludo',
     blurb: 'Race your four pieces home',
-    accent: 'var(--red)',
+    accent: 'var(--madder)',
     art: ludoArt,
     story: {
       lines: [
@@ -37,10 +39,10 @@ export const GAMES = [
   },
   {
     id: 'snakes',
-    kicker: 'Snakes &amp; Ladders',
-    title: 'Moksha Patam',
+    kicker: 'Moksha Patam',
+    title: 'Snakes & Ladders',
     blurb: 'Climb by kindness, slide by greed',
-    accent: 'var(--green)',
+    accent: 'var(--leaf)',
     art: snakesArt,
     story: {
       lines: [
@@ -54,10 +56,9 @@ export const GAMES = [
   },
   {
     id: 'memory',
-    kicker: 'Bonus game',
     title: 'Memory',
     blurb: 'Lattu, diya, jalebi &mdash; find the pair',
-    accent: '#9B6BD6',
+    accent: 'var(--indigo)',
     art: memoryArt,
     story: {
       lines: [
@@ -71,63 +72,89 @@ export const GAMES = [
   },
 ];
 
-/* Little board, drawn rather than loaded — no image files to fetch. */
+/* Each picture is the real object, drawn rather than loaded — no image
+   files to fetch. They sit on the card's own material (cloth, paper,
+   mat), so their backgrounds are left transparent. */
+
+const COWRIE = (x, y, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r})">
+    <ellipse rx="3.6" ry="4.8" fill="#FBEFD6" stroke="#9C7A4B" stroke-width="1"/>
+    <path d="M0 -3.3C1 -1.4 1 1.4 0 3.3-1 1.4-1 -1.4 0 -3.3z" fill="#2B2118"/></g>`;
+
+/* the wooden beehive pieces Pachisi is played with */
+const PIECE = (x, y, fill) => `<path d="M${x - 4.2} ${y + 4}Q${x - 4.6} ${y - 4.5} ${x} ${y - 6}Q${x + 4.6} ${y - 4.5} ${x + 4.2} ${y + 4}Z"
+    fill="${fill}" stroke="#2B2118" stroke-width=".9"/><circle cx="${x}" cy="${y - 6}" r="1.4" fill="${fill}" stroke="#2B2118" stroke-width=".7"/>`;
+
+/* Pachisi: the cross-shaped cloth board, cowries and pieces. */
 function ludoArt() {
+  const marks = [[50, 26], [50, 74], [26, 50], [74, 50]]
+    .map(([x, y]) => `<path d="M${x - 3} ${y - 3}l6 6M${x + 3} ${y - 3}l-6 6" stroke="#A8322A" stroke-width="1.6" stroke-linecap="round"/>`).join('');
   return `<svg viewBox="0 0 100 100" aria-hidden="true">
-    <rect x="2" y="2" width="96" height="96" rx="18" fill="#FFFDF6" stroke="#E3D8C4" stroke-width="3"/>
-    <rect x="9"  y="9"  width="33" height="33" rx="9" fill="var(--red)"/>
-    <rect x="58" y="9"  width="33" height="33" rx="9" fill="var(--green)"/>
-    <rect x="9"  y="58" width="33" height="33" rx="9" fill="var(--blue)"/>
-    <rect x="58" y="58" width="33" height="33" rx="9" fill="var(--yellow)"/>
-    <rect x="16" y="16" width="19" height="19" rx="5" fill="#FFFDF6"/>
-    <rect x="65" y="16" width="19" height="19" rx="5" fill="#FFFDF6"/>
-    <rect x="16" y="65" width="19" height="19" rx="5" fill="#FFFDF6"/>
-    <rect x="65" y="65" width="19" height="19" rx="5" fill="#FFFDF6"/>
-    <rect x="46" y="9"  width="8" height="33" rx="3" fill="var(--green)"/>
-    <rect x="46" y="58" width="8" height="33" rx="3" fill="var(--blue)"/>
-    <rect x="9"  y="46" width="33" height="8" rx="3" fill="var(--red)"/>
-    <rect x="58" y="46" width="33" height="8" rx="3" fill="var(--yellow)"/>
-    <circle cx="50" cy="50" r="9" fill="#FFFDF6" stroke="#E3D8C4" stroke-width="2"/>
+    <g fill="#F3E6C8" stroke="#26386A" stroke-width="1.6">
+      <rect x="38" y="5" width="24" height="90" rx="1"/>
+      <rect x="5" y="38" width="90" height="24" rx="1"/>
+    </g>
+    <g stroke="#26386A" stroke-width=".9" opacity=".8" fill="none">
+      <path d="M46 5v33M54 5v33M46 62v33M54 62v33M5 46h33M5 54h33M62 46h33M62 54h33"/>
+      <path d="M38 13h24M38 21.5h24M38 30h24M38 70h24M38 78.5h24M38 87h24M13 38v24M21.5 38v24M30 38v24M70 38v24M78.5 38v24M87 38v24"/>
+    </g>
+    ${marks}
+    <rect x="38" y="38" width="24" height="24" fill="#26386A"/>
+    <path d="M50 41.5l2.4 6.1 6.1 2.4-6.1 2.4L50 58.5l-2.4-6.1L41.5 50l6.1-2.4z" fill="#D9A21B"/>
+    ${PIECE(50, 84, '#C8402F')}${PIECE(16, 51, '#3E7A3A')}${PIECE(85, 51, '#E0A21B')}${PIECE(50, 17, '#2B2118')}
+    ${COWRIE(17, 17, -20)}${COWRIE(24, 22, 25)}${COWRIE(82, 80, 10)}
   </svg>`;
 }
 
+/* Moksha Patam: a painted board — ochre squares, a lotus at the top,
+   one ladder up, one snake down. */
 function snakesArt() {
+  const n = 5, o = 12, c = 76 / n;
+  let cells = '';
+  for (let r = 0; r < n; r++) {
+    for (let k = 0; k < n; k++) {
+      const fill = (r + k) % 2 ? '#E2BE6E' : '#F2E2BC';
+      cells += `<rect x="${o + k * c}" y="${o + r * c}" width="${c}" height="${c}" fill="${fill}"/>`;
+    }
+  }
   return `<svg viewBox="0 0 100 100" aria-hidden="true">
-    <rect x="2" y="2" width="96" height="96" rx="18" fill="#FFFDF6" stroke="#E3D8C4" stroke-width="3"/>
-    <g stroke="#F1E6D2" stroke-width="2">
-      <path d="M2 26h96M2 50h96M2 74h96M26 2v96M50 2v96M74 2v96"/>
+    ${cells}
+    <rect x="${o}" y="${o}" width="76" height="76" fill="none" stroke="#2B2118" stroke-width="1.4"/>
+    <g fill="#C94F7C" stroke="#7A2018" stroke-width=".6">
+      <path d="M50 14.5c3 3 3 7.5 0 10.5-3-3-3-7.5 0-10.5z"/>
+      <path d="M50 25c-3.6-.6-6.2-3.4-6.6-7 3.6.4 6.2 3.4 6.6 7zM50 25c3.6-.6 6.2-3.4 6.6-7-3.6.4-6.2 3.4-6.6 7z"/>
     </g>
-    <g stroke="#C98B45" stroke-width="4" stroke-linecap="round">
-      <path d="M22 82 L38 20"/><path d="M34 86 L50 24"/>
+    <g stroke="#7A4E1E" stroke-width="2.6" stroke-linecap="round">
+      <path d="M22 82 35 38M31 84 44 40"/>
     </g>
-    <g stroke="#C98B45" stroke-width="3" stroke-linecap="round">
-      <path d="M26 74 L42 78"/><path d="M30 58 L46 62"/><path d="M34 42 L50 46"/><path d="M38 26 L54 30"/>
+    <g stroke="#7A4E1E" stroke-width="1.8" stroke-linecap="round">
+      <path d="M24.5 74l9 2.6M27.5 64l9 2.6M30.5 54l9 2.6M33.5 44l9 2.6"/>
     </g>
-    <path d="M74 18 C58 34 90 46 72 62 C58 74 76 80 74 88"
-          fill="none" stroke="#4FAE7C" stroke-width="9" stroke-linecap="round"/>
-    <circle cx="74" cy="18" r="8" fill="#4FAE7C"/>
-    <circle cx="71" cy="16" r="2.2" fill="#FFFDF6"/>
-    <circle cx="77" cy="16" r="2.2" fill="#FFFDF6"/>
+    <path d="M70 30c-12 6 10 16-2 26-9 8 6 14 0 26" fill="none" stroke="#2F5A2A" stroke-width="7.5" stroke-linecap="round"/>
+    <path d="M70 30c-12 6 10 16-2 26-9 8 6 14 0 26" fill="none" stroke="#5E8F45" stroke-width="5" stroke-linecap="round"/>
+    <path d="M70 30c-12 6 10 16-2 26-9 8 6 14 0 26" fill="none" stroke="#D9A21B" stroke-width="1.2" stroke-dasharray="2 3" stroke-linecap="round"/>
+    <ellipse cx="71" cy="27.5" rx="6" ry="4.6" fill="#5E8F45" stroke="#2F5A2A" stroke-width="1.2"/>
+    <circle cx="73" cy="26.3" r="1.2" fill="#2B2118"/>
+    <path d="M76.5 28.5l3.5 1.2" stroke="#A8322A" stroke-width="1.2" stroke-linecap="round"/>
   </svg>`;
 }
 
-/* Three cards, one turned over — the game in one picture. */
+/* Painted cards, fanned on the mat: two indigo backs and a diya. */
 function memoryArt() {
+  const back = (x, y, r) => `<g transform="rotate(${r} ${x + 17} ${y + 23})">
+      <rect x="${x}" y="${y}" width="34" height="46" rx="3" fill="#26386A" stroke="#18244A" stroke-width="1"/>
+      <rect x="${x + 3}" y="${y + 3}" width="28" height="40" rx="1.5" fill="none" stroke="#F3E2C0" stroke-width="1" opacity=".8"/>
+      <g fill="#F3E2C0"><circle cx="${x + 17}" cy="${y + 19}" r="2.8"/><circle cx="${x + 17}" cy="${y + 27}" r="2.8"/>
+      <circle cx="${x + 13}" cy="${y + 23}" r="2.8"/><circle cx="${x + 21}" cy="${y + 23}" r="2.8"/></g>
+      <circle cx="${x + 17}" cy="${y + 23}" r="1.6" fill="#D9A21B"/></g>`;
   return `<svg viewBox="0 0 100 100" aria-hidden="true">
-    <g transform="rotate(-8 30 56)">
-      <rect x="8" y="30" width="34" height="46" rx="8" fill="#9B6BD6"/>
-      <circle cx="25" cy="53" r="8" fill="none" stroke="#FFFDF6" stroke-width="3" stroke-dasharray="4 4"/>
-    </g>
-    <g transform="rotate(7 70 54)">
-      <rect x="53" y="26" width="34" height="46" rx="8" fill="#9B6BD6"/>
-      <circle cx="70" cy="49" r="8" fill="none" stroke="#FFFDF6" stroke-width="3" stroke-dasharray="4 4"/>
-    </g>
-    <g transform="rotate(-2 50 62)">
-      <rect x="33" y="40" width="36" height="48" rx="8" fill="#FFFDF6" stroke="#E3D8C4" stroke-width="3"/>
-      <circle cx="47" cy="66" r="10" fill="#F0544F"/>
-      <circle cx="57" cy="66" r="10" fill="#F0544F"/>
-      <rect x="49" y="48" width="4" height="10" rx="2" fill="#8B5E2A"/>
-      <path d="M53 52c5-6 12-6 12-6s0 7-6 8c-4 1-6-1-6-2z" fill="#3FBF6F"/>
+    ${back(8, 24, -12)}${back(56, 20, 10)}
+    <g transform="rotate(-2 50 58)">
+      <rect x="32" y="32" width="36" height="50" rx="3" fill="#F8F1E1" stroke="#2B2118" stroke-width=".8"/>
+      <rect x="35" y="35" width="30" height="44" rx="1.5" fill="none" stroke="#A8322A" stroke-width="1.2"/>
+      <path d="M50 62c-5-5-3-11 0-17 3 6 5 12 0 17z" fill="#E0A21B"/>
+      <path d="M50 61c-2-2.6-1.4-5.6 0-8.4 1.4 2.8 2 5.8 0 8.4z" fill="#C8402F"/>
+      <path d="M37 64Q50 78 63 64z" fill="#C46A2E"/>
+      <path d="M37 64Q50 67.5 63 64Q56 61 50 61 44 61 37 64z" fill="#9A4A1C"/>
     </g>
   </svg>`;
 }

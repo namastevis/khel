@@ -16,7 +16,7 @@ const ok = (msg) => console.log('  ✓', msg);
 /* every file the app actually ships */
 function shipped(dir = '', out = []) {
   for (const name of readdirSync(join(ROOT, dir))) {
-    if (['node_modules', '.git', 'test', 'tools'].includes(name)) continue;
+    if (['node_modules', '.git', 'test', 'tools', 'Claude outputs'].includes(name)) continue;   // the last one is gitignored: assistant exports, never deployed
     const rel = dir ? `${dir}/${name}` : name;
     if (statSync(join(ROOT, rel)).isDirectory()) shipped(rel, out);
     else out.push(rel);

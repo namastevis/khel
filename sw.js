@@ -9,12 +9,18 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v13';
+const CACHE = 'khel-v14';
 
 const ASSETS = [
   './',
   'index.html',
   'app.css',
+  'theme.css',
+  'fonts/yatra-one-devanagari-400-normal.woff2',
+  'fonts/yatra-one-latin-400-normal.woff2',
+  'fonts/mukta-latin-400-normal.woff2',
+  'fonts/mukta-latin-600-normal.woff2',
+  'fonts/mukta-latin-800-normal.woff2',
   'manifest.webmanifest',
 
   'js/shell.js',

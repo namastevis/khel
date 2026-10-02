@@ -1,0 +1,360 @@
+/* ═══════════════════════════════════════════════════════════════
+   theme.css — what Khel is made of.
+
+   Loaded after app.css and only changes how things look. The rule
+   for every surface: it should be something you could touch.
+     · the house    — unbleached cotton, hand-block printed at the edge
+     · Pachisi/Ludo — madder-red cloth, the way the board was sewn
+     · Moksha Patam — handmade paper with a painted double border
+     · Memory       — painted cards laid out on a chatai mat
+   Colours come from dyes, not screens: madder, indigo, turmeric,
+   mehendi green, lamp-black. No gradients pretending to be light,
+   no pill shapes, no bounce.
+   ═══════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Yatra One";
+  src: url("fonts/yatra-one-devanagari-400-normal.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yatra One";
+  src: url("fonts/yatra-one-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+}
+@font-face { font-family: "Mukta"; font-weight: 400; src: url("fonts/mukta-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Mukta"; font-weight: 600; src: url("fonts/mukta-latin-600-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Mukta"; font-weight: 700 800; src: url("fonts/mukta-latin-800-normal.woff2") format("woff2"); font-display: swap; }
+
+:root {
+  --cotton:    #EFE4CC;
+  --cotton-hi: #F8F1E1;
+  --paper:     #E9D7AF;
+  --ink:       #2B2118;
+  --ink-soft:  #6B5A45;
+  --madder:    #A8322A;
+  --madder-d:  #7A2018;
+  --indigo:    #26386A;
+  --indigo-d:  #18244A;
+  --turmeric:  #D9A21B;
+  --leaf:      #4D7A38;
+  --leaf-d:    #355829;
+
+  --cream: var(--cotton);
+  --white: var(--cotton-hi);
+  --red: var(--madder);
+  --red-d: var(--madder-d);
+
+  --display: "Yatra One", "Kohinoor Devanagari", serif;
+  --font: "Mukta", "Kohinoor Devanagari", "Trebuchet MS", system-ui, sans-serif;
+
+  --lift: 0 1px 0 rgba(43,33,24,.10), 0 10px 18px -10px rgba(43,33,24,.55);
+  --shadow: var(--lift);
+  --radius: 8px;
+
+  /* materials */
+  --weave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 .5h6M0 3.5h6' stroke='%232B2118' stroke-opacity='.05'/%3E%3Cpath d='M.5 0v6M3.5 0v6' stroke='%232B2118' stroke-opacity='.035'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .13 0 0 0 0 .09 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* madder ground, cream buti — a little four-petal flower, block printed */
+  --buti-red: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Crect width='36' height='36' fill='%23A8322A'/%3E%3Cg fill='%23F3E2C0'%3E%3Ccircle cx='9' cy='6.2' r='2.3'/%3E%3Ccircle cx='9' cy='11.8' r='2.3'/%3E%3Ccircle cx='6.2' cy='9' r='2.3'/%3E%3Ccircle cx='11.8' cy='9' r='2.3'/%3E%3Ccircle cx='27' cy='24.2' r='2.3'/%3E%3Ccircle cx='27' cy='29.8' r='2.3'/%3E%3Ccircle cx='24.2' cy='27' r='2.3'/%3E%3Ccircle cx='29.8' cy='27' r='2.3'/%3E%3Ccircle cx='27' cy='9' r='1'/%3E%3Ccircle cx='9' cy='27' r='1'/%3E%3C/g%3E%3Cg fill='%23D9A21B'%3E%3Ccircle cx='9' cy='9' r='1.3'/%3E%3Ccircle cx='27' cy='27' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  /* cotton ground, sparse madder buti — for a whole screen */
+  --buti-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='%23A8322A' fill-opacity='.22'%3E%3Ccircle cx='16' cy='12.8' r='2.6'/%3E%3Ccircle cx='16' cy='19.2' r='2.6'/%3E%3Ccircle cx='12.8' cy='16' r='2.6'/%3E%3Ccircle cx='19.2' cy='16' r='2.6'/%3E%3Ccircle cx='48' cy='44.8' r='2.6'/%3E%3Ccircle cx='48' cy='51.2' r='2.6'/%3E%3Ccircle cx='44.8' cy='48' r='2.6'/%3E%3Ccircle cx='51.2' cy='48' r='2.6'/%3E%3C/g%3E%3Cg fill='%2326386A' fill-opacity='.22'%3E%3Ccircle cx='48' cy='16' r='1.4'/%3E%3Ccircle cx='16' cy='48' r='1.4'/%3E%3C/g%3E%3C/svg%3E");
+  /* the printed border: a diamond-and-dot repeat on madder */
+  --border-print: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='42'%3E%3Crect width='42' height='42' fill='%23A8322A'/%3E%3Cg fill='%23F3E2C0'%3E%3Cpath d='M7 2.5 11.5 7 7 11.5 2.5 7z'/%3E%3Cpath d='M21 2.5 25.5 7 21 11.5 16.5 7z'/%3E%3Cpath d='M35 2.5 39.5 7 35 11.5 30.5 7z'/%3E%3Cpath d='M7 16.5 11.5 21 7 25.5 2.5 21z'/%3E%3Cpath d='M35 16.5 39.5 21 35 25.5 30.5 21z'/%3E%3Cpath d='M7 30.5 11.5 35 7 39.5 2.5 35z'/%3E%3Cpath d='M21 30.5 25.5 35 21 39.5 16.5 35z'/%3E%3Cpath d='M35 30.5 39.5 35 35 39.5 30.5 35z'/%3E%3C/g%3E%3Cg fill='%2326386A'%3E%3Ccircle cx='7' cy='7' r='1.3'/%3E%3Ccircle cx='21' cy='7' r='1.3'/%3E%3Ccircle cx='35' cy='7' r='1.3'/%3E%3Ccircle cx='7' cy='21' r='1.3'/%3E%3Ccircle cx='35' cy='21' r='1.3'/%3E%3Ccircle cx='7' cy='35' r='1.3'/%3E%3Ccircle cx='21' cy='35' r='1.3'/%3E%3Ccircle cx='35' cy='35' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ───────────── the house: unbleached cotton ───────────── */
+html, body { background-color: var(--cotton); color: var(--ink); font-family: var(--font); }
+body { background-image: var(--grain), var(--weave); }
+
+/* printed edge round the shelf, like the border of a bedsheet */
+#screen-shelf::before {
+  content: "";
+  position: fixed;
+  inset: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  border: 14px solid transparent;
+  border-image: var(--border-print) 14 round;
+  pointer-events: none;
+  opacity: .92;
+  z-index: 1;
+}
+.shelf-wrap { padding: 34px 26px; justify-content: safe center; }
+
+/* the name: खेल, printed in madder with the indigo block a touch off
+   register — the way a two-block print actually comes out */
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  letter-spacing: 0;
+}
+.logo-dev {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(64px, 17vmin, 132px);
+  line-height: 1.05;
+  color: var(--madder);
+  text-shadow: 3px 3px 0 rgba(38,56,106,.85);
+}
+.logo-en {
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: clamp(12px, 2.8vmin, 16px);
+  letter-spacing: .5em;
+  margin-right: -.5em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+
+.tagline {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--ink);
+  font-size: clamp(19px, 4.6vmin, 30px);
+  letter-spacing: 0;
+}
+.promise { color: var(--ink-soft); font-weight: 600; }
+.band { opacity: 1; }
+
+/* ───────────── the shelf: each game as the thing itself ───────────── */
+.shelf {
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 236px));
+  gap: clamp(14px, 3vmin, 26px);
+}
+
+.game-slot:nth-child(3n+1) { transform: rotate(-1.1deg); }
+.game-slot:nth-child(3n+2) { transform: rotate(.8deg); }
+.game-slot:nth-child(3n)   { transform: rotate(-.4deg); }
+
+.game-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--cotton-hi);
+  box-shadow: var(--lift);
+  text-align: center;
+}
+.game-card:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(43,33,24,.1), 0 4px 8px -4px rgba(43,33,24,.5); }
+
+.card-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: clamp(104px, 20vmin, 138px);
+}
+.game-card .card-face svg {
+  width: clamp(80px, 16vmin, 112px);
+  height: clamp(80px, 16vmin, 112px);
+  filter: drop-shadow(0 3px 2px rgba(43,33,24,.35));
+}
+/* a running stitch just inside the edge of every face */
+.card-face::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1.5px dashed rgba(248,241,225,.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.game-card .card-text {
+  align-items: center;
+  padding: 10px 12px 12px;
+  gap: 1px;
+  border-top: 1px solid rgba(43,33,24,.12);
+}
+.game-card .card-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(20px, 4.4vmin, 26px);
+  line-height: 1.1;
+}
+.game-card .card-kicker { color: var(--ink-soft); opacity: 1; letter-spacing: .14em; }
+.game-card .card-blurb { color: var(--ink-soft); font-size: clamp(12px, 2.6vmin, 14px); }
+
+/* Pachisi: sewn madder cloth */
+.game-slot[data-id="ludo"] .card-face { background: var(--buti-red); }
+/* Moksha Patam: handmade paper with a painted double rule */
+.game-slot[data-id="snakes"] .card-face {
+  background: var(--grain), var(--paper);
+  box-shadow: inset 0 0 0 7px var(--paper), inset 0 0 0 10px var(--madder), inset 0 0 0 12px var(--paper), inset 0 0 0 13px var(--ink);
+}
+.game-slot[data-id="snakes"] .card-face::after { display: none; }
+/* Memory: cards on a chatai */
+.game-slot[data-id="memory"] .card-face {
+  background:
+    repeating-linear-gradient(45deg, rgba(110,72,24,.16) 0 5px, transparent 5px 10px),
+    repeating-linear-gradient(-45deg, rgba(255,244,214,.30) 0 5px, transparent 5px 10px),
+    #CDAE72;
+}
+
+.story-link {
+  font-family: var(--font);
+  font-weight: 700;
+  color: var(--indigo);
+  font-size: clamp(12px, 2.7vmin, 14px);
+}
+
+@media (max-width: 520px) {
+  .shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; width: 100%; }
+  .game-card { padding: 0; gap: 0; }
+  .card-face { height: 96px; }
+  .game-card .card-face svg { width: 74px; height: 74px; }
+  .game-card .card-text { padding: 8px 6px 10px; }
+  .game-card .card-title { font-size: 18px; }
+  .shelf-wrap { padding: 40px 34px; }
+  .tagline { font-size: 19px; line-height: 1.2; }
+  .promise { font-size: 12px; }
+  .logo-dev { font-size: 72px; }
+}
+
+/* ───────────── who lives here: cloth name tags ───────────── */
+.family-title { font-family: var(--font); color: var(--ink-soft); letter-spacing: .16em; }
+.member {
+  border-radius: 6px;
+  background: var(--cotton-hi);
+  box-shadow: var(--lift);
+  outline: 1.5px dashed rgba(43,33,24,.18);
+  outline-offset: -5px;
+  padding: 8px 14px 8px 9px;
+}
+.member-name { font-weight: 700; }
+.member-add { outline: none; border: 1.5px dashed rgba(43,33,24,.3); background: transparent; box-shadow: none; }
+
+.dedication { border-top: 1px dashed rgba(43,33,24,.25); }
+.ded-lead { font-family: var(--display); transform: none; color: var(--madder); font-size: clamp(20px, 4.6vmin, 27px); }
+.last-round { font-family: var(--font); }
+
+/* ───────────── buttons: patches, not pills ───────────── */
+.big-btn {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: .02em;
+  color: var(--cotton-hi);
+  background: var(--madder);
+  border-radius: 6px;
+  box-shadow: 0 5px 0 var(--madder-d), 0 12px 18px -10px rgba(43,33,24,.6);
+  outline: 1.5px dashed rgba(248,241,225,.55);
+  outline-offset: -6px;
+}
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--madder-d); }
+.ghost-btn { font-family: var(--font); color: var(--ink-soft); font-weight: 600; text-decoration-style: dotted; }
+
+.icon-btn {
+  border-radius: 6px;
+  background: var(--cotton-hi);
+  box-shadow: var(--lift);
+  outline: 1.5px dashed rgba(43,33,24,.16);
+  outline-offset: -5px;
+}
+
+.install-btn { border-radius: 6px; border: 1.5px dashed var(--turmeric); background: var(--cotton-hi); box-shadow: var(--lift); }
+.coach-bubble { border-radius: 8px; background: var(--cotton-hi); }
+
+.toast {
+  border-radius: 6px;
+  background: var(--indigo-d);
+  color: var(--cotton-hi);
+  font-family: var(--font);
+  box-shadow: 0 10px 22px rgba(0,0,0,.3);
+}
+
+/* ───────────── paper: story, help, winning, sheets ───────────── */
+.overlay, .sheet { background: rgba(43,33,24,.58); }
+
+.win-card, .help-card, .sheet-card {
+  background: var(--grain), var(--paper);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 9px var(--paper),
+    inset 0 0 0 12px var(--madder),
+    inset 0 0 0 15px var(--paper),
+    inset 0 0 0 16px var(--ink),
+    0 22px 44px rgba(0,0,0,.4);
+  padding: clamp(28px, 5.5vmin, 44px);
+}
+.win-card h2, .help-card h2, .sheet-title {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--madder);
+}
+.story-card .band { display: none; }
+.story-card h2 { font-size: clamp(30px, 7.5vmin, 44px); line-height: 1.05; }
+.story-kicker, .story-ask span { color: var(--indigo); letter-spacing: .14em; }
+.story-ask {
+  background: rgba(248,241,225,.6);
+  border: 1.5px dashed rgba(168,50,42,.45);
+  border-radius: 4px;
+}
+.story-names b, .story-here b { color: var(--madder); }
+
+.sheet-input { border-radius: 6px; background: var(--cotton-hi); border: 1.5px solid rgba(43,33,24,.2); }
+.sheet-input:focus { border-color: var(--madder); }
+.pick-option, .podium-row { border-radius: 6px; background: var(--cotton-hi); }
+.face { background: var(--cotton-hi); border-radius: 6px; }
+.face[aria-pressed="true"] { border-color: var(--madder); }
+.tint[aria-pressed="true"] { border-color: var(--ink); }
+
+/* ───────────── inside a game ───────────── */
+.game-name {
+  font-family: var(--display);
+  font-weight: 400;
+  text-shadow: 2px 2px 0 rgba(38,56,106,.35);
+  line-height: 1.05;
+}
+.setup-who { font-family: var(--display); font-weight: 400; }
+/* the older name, above the title — same order as on the shelf */
+.game-sub {
+  margin: 0 0 -6px;
+  font-size: clamp(11px, 2.6vmin, 14px);
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.seat {
+  border-radius: 6px;
+  background: var(--cotton-hi);
+  box-shadow: var(--lift);
+  outline: 1.5px dashed rgba(43,33,24,.16);
+  outline-offset: -5px;
+}
+
+.turn-card {
+  border-radius: 6px;
+  background: var(--cotton-hi);
+  box-shadow: var(--lift);
+}
+.turn-name { font-family: var(--display); font-weight: 400; }
+.hint { font-family: var(--font); font-weight: 700; color: var(--ink-soft); }
+
+/* the cowries are thrown into a winnowing basket — a supli */
+.dice {
+  border-radius: 50%;
+  padding: 14%;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(110,72,24,.16) 0 3deg, transparent 3deg 9deg),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 6px, rgba(110,72,24,.20) 6px 7px),
+    radial-gradient(circle at 50% 40%, #E8D09A, #D1AE68 65%, #B08848);
+  box-shadow: inset 0 0 0 5px #9A733A, inset 0 0 0 7px #E2C68A, 0 6px 0 #7E5C2B, 0 14px 18px -10px rgba(43,33,24,.6);
+}
+.dice:active { transform: translateY(3px); box-shadow: inset 0 0 0 5px #9A733A, inset 0 0 0 7px #E2C68A, 0 3px 0 #7E5C2B; }
+.dice[disabled] { opacity: .6; }
+@keyframes dice-pulse {
+  0%,100% { box-shadow: inset 0 0 0 5px #9A733A, inset 0 0 0 7px #E2C68A, 0 6px 0 #7E5C2B, 0 0 0 0 rgba(217,162,27,.7); }
+  50%     { box-shadow: inset 0 0 0 5px #9A733A, inset 0 0 0 7px #E2C68A, 0 6px 0 #7E5C2B, 0 0 0 16px rgba(217,162,27,0); }
+}
+
+canvas.board { border-radius: 3px; box-shadow: none; }
+.board-holder { padding: clamp(6px, 1.4vmin, 12px); border-radius: 4px; box-shadow: var(--lift); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-l { animation: none; }
+}

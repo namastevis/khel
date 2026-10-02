@@ -6,3 +6,13 @@
 .ludo { height: 100%; }
 .ludo .game-name { color: var(--red); }
 .ludo canvas.board { border-radius: 26px; }
+
+/* Pachisi was played on cloth, so Ludo is too: the room is printed
+   cotton, the board sits on a madder cloth with a sewn hem. */
+.ludo { background: var(--buti-light), var(--grain), var(--cotton); }
+.ludo .game-name { color: var(--madder); }
+.ludo .board-holder {
+  background: var(--buti-red);
+  outline: 1.5px dashed rgba(248,241,225,.6);
+  outline-offset: -4px;
+}

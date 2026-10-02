@@ -22,9 +22,9 @@ const $ = (id) => document.getElementById(id);
    not a thing a browser will let you tap reliably. */
 function buildShelf() {
   $('shelf').innerHTML = GAMES.map((g) => `
-    <div class="game-slot" style="--accent:${g.accent}">
+    <div class="game-slot" data-id="${g.id}" style="--accent:${g.accent}">
       <button class="game-card" data-id="${g.id}" style="--accent:${g.accent}">
-        ${g.art()}
+        <span class="card-face">${g.art()}</span>
         <span class="card-text">
           ${g.kicker ? `<span class="card-kicker">${g.kicker}</span>` : ''}
           <span class="card-title">${g.title}</span>

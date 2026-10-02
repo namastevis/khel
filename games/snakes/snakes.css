@@ -12,9 +12,18 @@
   font-weight: 600;
   color: var(--ink-soft);
 }
-.snakes .game-sub {
-  margin: -4px 0 6px;
-  color: var(--ink-soft);
-  font-size: clamp(13px, 3vmin, 17px);
-  font-weight: 600;
+
+/* Moksha Patam boards were painted on paper or cloth and framed in
+   ruled borders — so the room is handmade paper, and the board gets
+   the madder-and-black double rule. */
+.snakes { background: var(--grain), var(--paper); }
+.snakes .game-name { color: var(--leaf); }
+.snakes .board-holder {
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 3px var(--madder),
+    inset 0 0 0 5px var(--paper),
+    inset 0 0 0 6px var(--ink),
+    var(--lift);
+  padding: clamp(10px, 2vmin, 16px);
 }

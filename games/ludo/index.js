@@ -19,6 +19,7 @@ const TEMPLATE = `
   <!-- ── who is playing ── -->
   <section class="game-screen is-active" data-screen="setup">
     <div class="setup-wrap">
+      <p class="game-sub">Pachisi</p>
       <h2 class="game-name">Ludo</h2>
       <p class="setup-who">Who's playing?</p>
       <p class="setup-hint">Tap a piece to choose who plays it</p>

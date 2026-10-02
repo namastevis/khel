@@ -7,7 +7,7 @@ import { createController } from './game.js';
 import { createTable } from '../../js/table.js';
 import { unlock } from '../../js/audio.js';
 
-export const meta = { id: 'snakes', title: 'Moksha Patam' };
+export const meta = { id: 'snakes', title: 'Snakes & Ladders' };
 
 
 const TEMPLATE = `
@@ -15,8 +15,8 @@ const TEMPLATE = `
 
   <section class="game-screen is-active" data-screen="setup">
     <div class="setup-wrap">
-      <h2 class="game-name">Moksha Patam</h2>
-      <p class="game-sub">Snakes &amp; Ladders, as it began</p>
+      <p class="game-sub">Moksha Patam</p>
+      <h2 class="game-name">Snakes &amp; Ladders</h2>
       <p class="setup-who">Who's playing?</p>
       <p class="setup-hint">Tap a piece to choose who plays it</p>
 
@@ -36,7 +36,7 @@ const TEMPLATE = `
   <section class="game-screen" data-screen="board">
     <div class="stage">
       <div class="board-holder">
-        <canvas class="board" data-el="board" aria-label="Moksha Patam board — snakes and ladders"></canvas>
+        <canvas class="board" data-el="board" aria-label="Snakes and ladders board"></canvas>
       </div>
 
       <aside class="panel">
