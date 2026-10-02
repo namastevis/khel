@@ -9,7 +9,7 @@
    keep serving the version they already have.
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE = 'khel-v15';
+const CACHE = 'khel-v16';
 
 const ASSETS = [
   './',
@@ -56,6 +56,13 @@ const ASSETS = [
   'games/memory/deck.js',
   'games/memory/config.js',
   'games/memory/memory.css',
+
+  'games/raja/index.js',
+  'games/raja/game.js',
+  'games/raja/rules.js',
+  'games/raja/config.js',
+  'games/raja/chits.js',
+  'games/raja/raja.css',
 
   'icons/icon-192.png',
   'icons/icon-512.png',

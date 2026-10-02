@@ -70,6 +70,22 @@ export const GAMES = [
       ask: 'What did you play with, before there were screens?',
     },
   },
+  {
+    id: 'raja',
+    title: 'Raja Mantri Chor Sipahi',
+    blurb: 'Four secret chits — can the Mantri find the Chor?',
+    accent: '#9A5B13',
+    art: rajaArt,
+    story: {
+      lines: [
+        'Four folded chits, four players, one secret each. Generations of Indians have played this on a floor, in a train, at a wedding &mdash; anywhere with a scrap of paper and a pencil.',
+        'Nobody knows who first wrote <b>Raja</b>, <b>Mantri</b>, <b>Chor</b> and <b>Sipahi</b> on four chits. It was passed from hand to hand, not printed in a box, so every family plays it a little differently.',
+      ],
+      names: 'Chor Sipahi &middot; Raja Rani Chor Sipahi (with more chits)',
+      here: 'The Mantri finds the Chor. Get it wrong and the Chor runs off with the Mantri&rsquo;s 800. Pass the tablet round to peek at your chit.',
+      ask: 'Who caught the Chor most often when you were small?',
+    },
+  },
 ];
 
 /* Each picture is the real object, drawn rather than loaded — no image
@@ -155,6 +171,22 @@ function memoryArt() {
       <path d="M50 61c-2-2.6-1.4-5.6 0-8.4 1.4 2.8 2 5.8 0 8.4z" fill="#C8402F"/>
       <path d="M37 64Q50 78 63 64z" fill="#C46A2E"/>
       <path d="M37 64Q50 67.5 63 64Q56 61 50 61 44 61 37 64z" fill="#9A4A1C"/>
+    </g>
+  </svg>`;
+}
+
+/* Raja Mantri Chor Sipahi: four chits on a durrie, one opened — the crown. */
+function rajaArt() {
+  const fold = (x, y, r) => `<g transform="rotate(${r} ${x + 14} ${y + 14})">
+      <path d="M${x} ${y}h28l-3 30h-22z" fill="#F8F1E1" stroke="#2B2118" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M${x} ${y}l14 11 14-11" fill="none" stroke="#2B2118" stroke-width="1.3"/></g>`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+    ${fold(10, 14, -14)}${fold(62, 10, 12)}${fold(8, 58, 8)}
+    <g transform="rotate(-4 64 66)">
+      <rect x="46" y="46" width="40" height="42" rx="2" fill="#F8F1E1" stroke="#2B2118" stroke-width="1.6"/>
+      <path d="M54 76 52 58l8 7 6-11 6 11 8-7-2 18z" fill="#D9A21B" stroke="#2B2118" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="53" y="75" width="26" height="5" rx="1" fill="#B8862A" stroke="#2B2118" stroke-width="1.3"/>
+      <circle cx="66" cy="53" r="2.2" fill="#A8322A"/>
     </g>
   </svg>`;
 }

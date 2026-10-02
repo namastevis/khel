@@ -186,6 +186,11 @@ body { background-image: var(--grain), var(--weave); }
   box-shadow: inset 0 0 0 7px var(--paper), inset 0 0 0 10px var(--madder), inset 0 0 0 12px var(--paper), inset 0 0 0 13px var(--ink);
 }
 .game-slot[data-id="snakes"] .card-face::after { display: none; }
+/* Raja Mantri Chor Sipahi: chits on a striped durrie */
+.game-slot[data-id="raja"] .card-face {
+  background: repeating-linear-gradient(0deg, #EFE4CC 0 18px, #26386A 18px 21px, #EFE4CC 21px 24px, #A8322A 24px 26px, #EFE4CC 26px 44px);
+}
+.game-slot[data-id="raja"] .card-face::after { border-color: rgba(43,33,24,.25); }
 /* Memory: cards on a chatai */
 .game-slot[data-id="memory"] .card-face {
   background:

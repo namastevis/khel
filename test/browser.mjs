@@ -679,6 +679,53 @@ const alwaysRolls = (value) => ({
   await ctx.close();
 }
 
+/* ── Raja Mantri Chor Sipahi: pass the tablet, peek, accuse, five rounds ── */
+{
+  const { ctx, page } = await open('raja', { width: 1024, height: 768 });
+  check('Raja Mantri Chor Sipahi is on the shelf', await page.isVisible('.game-card[data-id="raja"]'));
+  await page.click('.game-card[data-id="raja"]');
+  await page.waitForTimeout(600);
+  check('raja: four places on the durrie', (await page.$$('.rseat')).length === 4);
+  check('raja: empty seats are filled by the animals',
+    await page.evaluate(() => RAJA.game.state.players.filter((p) => p.kind === 'cpu').length === 2));
+
+  let peeksHidden = true, peekedOwn = true, rounds = 0;
+  for (let guard = 0; guard < 240 && !(await page.isVisible('[data-el="winOverlay"].is-active')); guard++) {
+    if (await page.isVisible('[data-act="me"]')) {
+      await page.click('[data-act="me"]');
+      const chit = page.locator('[data-act="peek"]');
+      peeksHidden &&= !(await chit.evaluate((e) => e.classList.contains('is-open')));
+      await chit.dispatchEvent('pointerdown');
+      peekedOwn &&= await chit.evaluate((e) => e.classList.contains('is-open'));
+      await chit.dispatchEvent('pointerup');
+      peeksHidden &&= !(await chit.evaluate((e) => e.classList.contains('is-open')));
+      await page.click('[data-act="done"]');
+      continue;
+    }
+    const suspect = await page.$('.rseat.is-suspect:not([disabled])');
+    if (suspect) { await suspect.click(); await page.waitForTimeout(200); continue; }
+    if (await page.isVisible('[data-act="next"]')) {
+      rounds++;
+      const sum = await page.evaluate(() => Object.values(RAJA.game.state.last.gains).reduce((a, b) => a + b, 0));
+      if (sum !== 2300) check(`raja: round ${rounds} handed out 2300 points`, false);
+      await page.click('[data-act="next"]');
+      continue;
+    }
+    await page.waitForTimeout(500);
+  }
+  check('raja: a chit is shut until you hold it, and shuts when you let go', peeksHidden);
+  check('raja: holding the chit shows it', peekedOwn);
+  check('raja: five rounds, then a winner', rounds === 5 && await page.isVisible('[data-el="winOverlay"].is-active'));
+  check('raja: everyone on the podium', (await page.$$('[data-el="podium"] .podium-row')).length === 4);
+  await page.screenshot({ path: '/tmp/khel-raja.png' });
+
+  await page.click('[data-el="quit"]').catch(() => {});
+  await page.evaluate(() => KHEL.goHome());
+  await page.waitForTimeout(400);
+  check('raja: leaving cleans up', await page.evaluate(() => !globalThis.RAJA));
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 
